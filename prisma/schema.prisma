@@ -1,0 +1,239 @@
+// Prisma Schema for Student Discipline Management System ("Agent 47")
+// Designed for PostgreSQL (Neon / Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum CaseStatus {
+  INTAKE
+  NOTICE_ISSUED
+  RESPONSE_WINDOW
+  COMMITTEE_CONSTITUTED
+  HEARING_SCHEDULED
+  DECISION_RECORDED
+  APPEAL_WINDOW
+  COMPLIANCE_TRACKING
+  CLOSED
+  EXPIRED_PURGED
+}
+
+enum SeverityLevel {
+  MINOR
+  MODERATE
+  MAJOR
+  CRITICAL
+}
+
+enum ChecklistStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  WAIVED
+}
+
+enum NoticeType {
+  NOTICE_OF_CHARGE
+  HEARING_SUMMONS
+  DECISION_ORDER
+  APPEAL_INFO
+}
+
+enum DeliveryStatus {
+  DRAFT
+  DISPATCHED
+  DELIVERED
+  FAILED
+}
+
+enum UserRole {
+  ADMIN_REGISTRAR
+  HEAD_OF_DEPARTMENT
+  DEAN_STUDENT_AFFAIRS
+  COMMITTEE_MEMBER
+  GOVERNANCE_VIEWER
+}
+
+model Case {
+  id                    String                   @id @default(uuid())
+  caseNumber            String                   @unique // e.g. DISC-2026-00042
+  title                 String
+  status                CaseStatus               @default(INTAKE)
+  department            String
+  studentRegNoHash      String                   // Anonymized/hashed reference for student separation
+  studentDisplayRef     String                   // e.g. "Student Ref #CS-8902" (no direct link to academic profile)
+  competentAuthorityId  String                   // User ID or role assigned
+  offenceCategoryId     String
+  offenceCategory       OffenceCategory          @relation(fields: [offenceCategoryId], references: [id])
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  retentionExpiryAt     DateTime?
+  closedAt              DateTime?
+  isPurged              Boolean                  @default(false)
+  
+  // Relations
+  incidentReport        IncidentReport?
+  checklistItems        ProceduralChecklistItem[]
+  notices               Notice[]
+  committeeRecord       CommitteeRecord?
+  decision              Decision?                // Human-write-only record
+  auditLogs             AuditLogEntry[]
+
+  @@index([status])
+  @@index([department])
+  @@index([caseNumber])
+}
+
+model IncidentReport {
+  id              String         @id @default(uuid())
+  caseId          String         @unique
+  case            Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  incidentDate    DateTime
+  location        String
+  description     String
+  reportingPerson String
+  witnessCount    Int            @default(0)
+  evidenceItems   EvidenceItem[]
+  createdAt       DateTime       @default(now())
+}
+
+model EvidenceItem {
+  id               String          @id @default(uuid())
+  incidentReportId String
+  incidentReport   IncidentReport  @relation(fields: [incidentReportId], references: [id], onDelete: Cascade)
+  fileName         String
+  fileSize         Int
+  mimeType         String
+  sha256Checksum   String          // Cryptographic integrity proof
+  storageKey       String          // S3/R2 object key (WORM mode locked)
+  uploadedBy       String
+  uploadedAt       DateTime        @default(now())
+}
+
+model OffenceCategory {
+  id                  String         @id @default(uuid())
+  code                String         @unique // e.g. "ACAD-01", "COND-04"
+  name                String
+  severity            SeverityLevel
+  description         String
+  procedureReference  String         // Section of institutional code
+  defaultQuorum       Int            @default(3)
+  responseWindowDays  Int            @default(7)
+  appealWindowDays    Int            @default(14)
+  retentionYears      Int            @default(3)
+  sanctionRangeGuide  String         // Informational display only
+  cases               Case[]
+  precedents          PrecedentIndex[]
+}
+
+model ProceduralChecklistItem {
+  id             String          @id @default(uuid())
+  caseId         String
+  case           Case            @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  stepNumber     Int
+  requirement    String          // e.g. "Formal Notice of Charge Issued"
+  description    String
+  dueDate        DateTime
+  completedAt    DateTime?
+  completedBy    String?
+  evidenceRef    String?         // Checksum or link to notice/minutes
+  status         ChecklistStatus @default(PENDING)
+  notes          String?
+
+  @@index([caseId, stepNumber])
+}
+
+model Notice {
+  id               String         @id @default(uuid())
+  caseId           String
+  case             Case           @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  type             NoticeType
+  recipientRef     String         // e.g. "Official institutional email of Student #CS-8902"
+  subject          String
+  contentMarkdown  String
+  generatedDocHash String         // SHA-256 of generated document
+  deliveryStatus   DeliveryStatus @default(DRAFT)
+  deliveryProof    String?        // Webhook delivery ID or registered post tracking
+  sentAt           DateTime?
+  createdAt        DateTime       @default(now())
+}
+
+model CommitteeRecord {
+  id                  String    @id @default(uuid())
+  caseId              String    @unique
+  case                Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  committeeChair      String
+  membersAssigned     String[]  // Array of named authorities
+  hearingDate         DateTime?
+  hearingVenue        String?
+  quorumRequired      Int       @default(3)
+  quorumPresent       Int       @default(0)
+  isQuorumMet         Boolean   @default(false)
+  studentAttended     Boolean   @default(false)
+  studentRepresentative String?
+  deliberationMinutes String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// CRITICAL GUARDRAIL:
+// This table is HUMAN-WRITE-ONLY. No AI agent, LLM tool call, or cron job is ever granted write access.
+model Decision {
+  id                 String    @id @default(uuid())
+  caseId             String    @unique
+  case               Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  decidedBy          String    // Full name and role of the deciding authority
+  decidingAuthority  String    // e.g. "Dean of Student Affairs" or "Disciplinary Committee Bench A"
+  verdict            String    // Human decision text (e.g., "Charge Substantiated in Part")
+  reasoningText      String    // Detailed legal & factual justification by human authority
+  sanctionImposed    String    // Selected sanction from authorized policy spectrum
+  sanctionStartDate  DateTime?
+  sanctionEndDate    DateTime?
+  appealRoute        String    // Prescribed appellate body (e.g., "Executive Appeals Board")
+  appealDeadline     DateTime
+  appealSubmitted    Boolean   @default(false)
+  decidedAt          DateTime  @default(now())
+  decisionDocHash    String    // Cryptographic signature hash
+}
+
+// APPEND-ONLY HASH-CHAINED AUDIT LOG
+// Each entry stores hash(prevHash + actorId + action + payloadHash + timestamp)
+model AuditLogEntry {
+  id           String   @id @default(uuid())
+  caseId       String?
+  case         Case?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  actorId      String   // Authenticated user ID or system daemon
+  actorRole    String   // Role at time of mutation
+  action       String   // e.g. "CASE_INTAKE", "NOTICE_DISPATCHED", "DECISION_RECORDED"
+  details      String
+  payloadHash  String   // SHA-256 of mutating payload
+  prevHash     String   // Hash of the immediately preceding audit row
+  currHash     String   // SHA-256(prevHash + actorId + action + payloadHash + timestamp)
+  timestamp    DateTime @default(now())
+
+  @@index([caseId])
+  @@index([timestamp])
+  @@index([currHash])
+}
+
+// Precedent index: strictly anonymized past-case summaries for reference only
+model PrecedentIndex {
+  id                   String          @id @default(uuid())
+  offenceCategoryId    String
+  offenceCategory      OffenceCategory @relation(fields: [offenceCategoryId], references: [id])
+  anonymizedCaseRef    String          // e.g. "PREC-2024-0012"
+  generalizedFacts     String          // Redacted description of conduct
+  mitigatingFactors    String?
+  aggravatingFactors   String?
+  sanctionImposedRange String
+  yearResolved         Int
+  searchKeywords       String          // Full-text search tokens
+  
+  @@index([offenceCategoryId])
+}
