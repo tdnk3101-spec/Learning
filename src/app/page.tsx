@@ -16,87 +16,98 @@ import {
   Clock,
   Fingerprint,
 } from 'lucide-react';
-
+import { Case } from '@/types';
+import { getAllCasesForGovernance } from '@/lib/store';
 
 export default function LandingPage() {
+  const [allCases, setAllCases] = React.useState<Case[]>([]);
   const [activeTab, setActiveTab] = React.useState<'student' | 'faculty' | 'hod' | 'committee' | 'dean'>('hod');
   const [activeWorkflowStep, setActiveWorkflowStep] = React.useState<number>(1);
   const [selectedIncident, setSelectedIncident] = React.useState<number>(0);
   const [isAgentRunning, setIsAgentRunning] = React.useState<boolean>(false);
   const [agentOutputVisible, setAgentOutputVisible] = React.useState<boolean>(true);
 
+  React.useEffect(() => {
+    const updateCases = () => {
+      setAllCases(getAllCasesForGovernance());
+    };
+    updateCases();
+    window.addEventListener('persona-changed', updateCases);
+    return () => window.removeEventListener('persona-changed', updateCases);
+  }, []);
+
   const workflows = [
     {
       num: 1,
-      title: 'Detect',
-      desc: 'Identify infractions',
-      role: 'Faculty / Proctor',
-      guardrail: 'Objective factual observation only; no guilt presumption.',
-      statutoryCode: 'Reg §4.1 (Intake)',
+      title: 'Incident Registration',
+      desc: 'Date, location, persons, witnesses, evidence & auto Case ID',
+      role: 'Reporting Authority',
+      guardrail: 'Objective factual intake; multi-party involvement & WORM SHA-256 evidence sealing.',
+      statutoryCode: 'Step 1: Registration',
     },
     {
       num: 2,
-      title: 'Understand',
-      desc: 'Classify category',
-      role: 'Student Discipline Agent',
-      guardrail: 'Automated policy clause matching without discretionary bias.',
-      statutoryCode: 'Reg §5.2 (Offence Mapping)',
+      title: 'Policy & Offence Mapping',
+      desc: 'Category, policy, clause, procedure & authority',
+      role: 'EDUguard Agent',
+      guardrail: 'Automated 5-point institutional policy database mapping without discretionary bias.',
+      statutoryCode: 'Step 2: Policy Engine',
     },
     {
       num: 3,
-      title: 'Hash Evidence',
-      desc: 'Cryptographic lock',
-      role: 'Intake System',
-      guardrail: 'SHA-256 tamper-evident chain; WORM storage prevents modification.',
-      statutoryCode: 'Evidence Act §65B',
+      title: 'Due-Process Checklist',
+      desc: '8 statutory checklist items (Pending → In Progress → Completed)',
+      role: 'Procedural Engine',
+      guardrail: 'Strict procedural gating ensures zero milestone skipping.',
+      statutoryCode: 'Step 3: Due-Process',
     },
     {
       num: 4,
-      title: 'Issue Notice',
-      desc: 'Formal summons',
-      role: 'HOD / Proctor',
-      guardrail: 'Mandatory 5-day statutory response clock delivered to student.',
-      statutoryCode: 'Reg §7.1 (Notice of Charge)',
+      title: 'Notices & Communication',
+      desc: 'Show-cause, hearing, committee, decision, appeal & acknowledgements',
+      role: 'Registrar / Tribunal',
+      guardrail: 'Policy-compliant templates with delivery status & student receipt acknowledgement.',
+      statutoryCode: 'Step 4: Communications',
     },
     {
       num: 5,
-      title: 'Student Defense',
-      desc: 'Written representation',
-      role: 'Respondent Student',
-      guardrail: 'Full access to evidence; right to legal advocate and written submission.',
-      statutoryCode: 'Due Process §10.1',
+      title: 'Case File Management',
+      desc: 'Secure dossier of 8 evidentiary items with timestamps & RBAC',
+      role: 'Custodial Registry',
+      guardrail: 'Tamper-evident case file with cryptographic timestamps & access control.',
+      statutoryCode: 'Step 5: Master Dossier',
     },
     {
       num: 6,
-      title: 'Verify Quorum',
-      desc: 'Check impartiality',
-      role: 'Committee Chair',
-      guardrail: 'Minimum 3 non-recused members; mandatory conflict-of-interest check.',
-      statutoryCode: 'Reg §12.3 (Quorum Rule)',
+      title: 'Committee Support',
+      desc: 'Policy clauses, precedents, decisions, requirements & timeline',
+      role: 'Inquiry Panel',
+      guardrail: 'System provides information only; does NOT tell committee what punishment to give.',
+      statutoryCode: 'Step 6: Support Console',
     },
     {
       num: 7,
-      title: 'Precedent RAG',
-      desc: 'Policy lookup',
-      role: 'Student Discipline Agent',
-      guardrail: 'Informational only. AI strictly prohibited from ranking sanctions.',
-      statutoryCode: 'Policy Index §15',
+      title: 'Decision Recording',
+      desc: 'Decision, reasoning, sanction imposed & appeal route',
+      role: 'Authorized Committee',
+      guardrail: 'Human-exclusive authority: System records decision but does not generate it.',
+      statutoryCode: 'Step 7: Reasoned Order',
     },
     {
       num: 8,
-      title: 'Human Order',
-      desc: 'Reasoned finding',
-      role: 'Disciplinary Committee',
-      guardrail: 'Human-exclusive authority. Reasoned written finding with quorum signatures.',
-      statutoryCode: 'Reg §18.4 (Sanction Order)',
+      title: 'Sanction & Case Closure',
+      desc: 'Sanctions, completion status, deadlines, appeals & retention purge',
+      role: 'Compliance Officer',
+      guardrail: 'Lifecycle closure verification and automated retention purge schedule.',
+      statutoryCode: 'Step 8: Compliance & Closure',
     },
     {
       num: 9,
-      title: 'Appellate Right',
-      desc: 'Tribunal review',
-      role: 'Appellate Authority',
-      guardrail: '10-day statutory appeal window to review procedural fairness.',
-      statutoryCode: 'Statute §22 (Appeals)',
+      title: 'Anonymous Analytics',
+      desc: 'Case counts, incident types, dept/year, turnaround, pending & trends',
+      role: 'Governance & Senate',
+      guardrail: 'Zero student PII appears in governance reports (FERPA & Senate audit compliant).',
+      statutoryCode: 'Step 9: Governance Analytics',
     },
   ];
 
@@ -211,7 +222,7 @@ export default function LandingPage() {
         <div className="lg:col-span-7 space-y-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-800 border border-emerald-500/25 text-xs font-semibold animate-pulse-glow">
             <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
-            <span>Student Discipline Agent · Agent 47</span>
+            <span>EDUguard — Student Discipline Agent</span>
             <span className="text-emerald-400">·</span>
             <span className="text-[10px] font-mono uppercase tracking-wider bg-emerald-600 text-white px-2 py-0.2 rounded-full">
               Statutory Safeguard
@@ -226,7 +237,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed max-w-2xl font-normal">
-            The <strong>Student Discipline Agent</strong> (Agent 47) enforces procedural due process across every stage of institutional inquiry.
+            The <strong>EDUguard Student Discipline Agent</strong> enforces procedural due process across every stage of institutional inquiry.
             It classifies offences, tracks statutory deadlines, retrieves policy precedents, and generates formal notices—
             <strong>while strictly reserving all decisions on guilt and sanctions for human committees.</strong>
           </p>
@@ -241,19 +252,30 @@ export default function LandingPage() {
             </Link>
 
             <Link
+              href="/assistant"
+              className="px-5 py-3.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2 border border-emerald-400/40"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-200 animate-pulse" />
+              <span>EDUguard AI Chatbot</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/25 text-emerald-100">
+                120B
+              </span>
+            </Link>
+
+            <Link
               href="/student"
-              className="px-5 py-3.5 rounded-xl bg-[#0B1727] hover:bg-[#12243D] text-white font-semibold text-xs sm:text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
+              className="px-5 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs sm:text-sm shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-2"
             >
               <PlayCircle className="w-4 h-4 text-emerald-400" />
               <span>Student Due-Process Desk</span>
             </Link>
 
             <Link
-              href="/login"
-              className="px-5 py-3.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs sm:text-sm shadow-xs hover:-translate-y-0.5 transition-all flex items-center gap-2"
+              href="/precedents"
+              className="px-5 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs sm:text-sm shadow-xs hover:-translate-y-0.5 transition-all flex items-center gap-2"
             >
-              <UserCheck className="w-4 h-4 text-slate-500" />
-              <span>Switch Role (Demo)</span>
+              <Scale className="w-4 h-4 text-slate-500" />
+              <span>Similar Case Support</span>
             </Link>
           </div>
 
@@ -274,108 +296,244 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Right Column: Hero Visual Card with High-End Micro-Animations */}
+        {/* Right Column: Hero Visual Card with High-End Light Design and Real Dynamic Dockets */}
         <div className="lg:col-span-5 relative">
           {/* Subtle Ambient Glow Behind Card */}
-          <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-blue-500/20 rounded-3xl blur-2xl -z-10" />
+          <div className="absolute -inset-2 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-blue-500/10 rounded-3xl blur-2xl -z-10" />
 
-          {/* Main Dark Floating Panel */}
-          <div className="relative p-7 sm:p-8 bg-gradient-to-br from-[#0B1E33] via-[#0F2A4A] to-[#0A1A2E] rounded-3xl text-white shadow-2xl border border-[#1E3A5F] overflow-hidden animate-float-slow">
-            {/* Animated Glow Spot */}
-            <div className="absolute -top-16 -right-16 w-48 h-48 bg-emerald-500/25 rounded-full blur-3xl animate-pulse" />
-
-            <div className="flex items-center justify-between mb-6">
+          {/* Main Light Floating Panel */}
+          <div className="relative p-6 sm:p-7 bg-white rounded-3xl text-slate-800 shadow-xl shadow-slate-200/60 border border-slate-200 overflow-hidden animate-float-slow">
+            <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shadow-inner">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center font-bold shadow-2xs">
                   <Scale className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm tracking-tight text-white flex items-center gap-1.5">
-                    <span>Student Discipline Agent</span>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <h3 className="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-1.5">
+                    <span>EDUguard Sentinel</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-mono">Agent 47 · Real-Time Sentinel</p>
+                  <p className="text-[11px] text-slate-500 font-mono">Live Institutional Registry Active</p>
                 </div>
               </div>
-              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold tracking-wider">
-                100% PROCEDURAL HEALTH
+              <span className="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                <span>REAL-TIME AUDIT</span>
               </span>
             </div>
 
-            {/* Metric Pills */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xs">
-                <span className="text-[10px] text-slate-400 block font-medium">Active Dockets</span>
-                <span className="text-2xl font-black text-white tracking-tight">1,284</span>
-                <span className="text-[9px] text-emerald-400 block mt-0.5">All statutory clocks active</span>
+            {/* Metric Pills (Connected to Real Cases Store) */}
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-500 font-medium">Active Dockets</span>
+                  <span className="text-[9px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    Live
+                  </span>
+                </div>
+                <span className="text-2xl font-black text-slate-900 tracking-tight block mt-0.5">
+                  {allCases.filter((c) => c.status !== 'CLOSED' && c.status !== 'EXPIRED_PURGED').length || 3}
+                </span>
+                <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
+                  {allCases.filter((c) => c.status === 'CLOSED').length || 2} closed records archived
+                </span>
               </div>
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-xs">
-                <span className="text-[10px] text-emerald-300 block font-medium">Requires Quorum</span>
-                <span className="text-2xl font-black text-emerald-400 tracking-tight">87</span>
-                <span className="text-[9px] text-emerald-300/80 block mt-0.5">3+ committee required</span>
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-emerald-800 font-medium">Requires Quorum</span>
+                  <span className="text-[9px] font-mono text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                    Panel
+                  </span>
+                </div>
+                <span className="text-2xl font-black text-emerald-800 tracking-tight block mt-0.5">
+                  {allCases.filter((c) => c.status === 'HEARING_SCHEDULED' || c.status === 'COMMITTEE_CONSTITUTED' || (c.committeeRecord && !c.committeeRecord.isQuorumMet)).length || 1}
+                </span>
+                <span className="text-[10px] text-emerald-700 font-medium block mt-0.5">
+                  3+ verified committee required
+                </span>
               </div>
             </div>
 
-            {/* Stack of Floating Interactive Status Cards */}
-            <div className="space-y-3">
-              <div className="p-3 rounded-xl bg-white/10 border border-white/15 backdrop-blur-md flex items-center justify-between text-xs hover:bg-white/15 transition group cursor-default">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
-                  <div>
-                    <div className="font-bold text-slate-100 text-[11px]">Notice of Charge Issued</div>
-                    <div className="text-[10px] text-slate-300">5-day statutory window clock active</div>
+            {/* Stack of Real Interactive Active & Closed Docket Cards */}
+            <div className="space-y-2.5">
+              {/* Real Case 1: Active Response Window */}
+              <Link
+                href="/cases/case-2026-00042"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 flex items-center justify-between text-xs transition group cursor-pointer block"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-slate-900 text-[11px]">EDU-2026-00042</span>
+                      <span className="text-[10px] text-slate-400">·</span>
+                      <span className="text-[10px] text-slate-600 truncate">Rahul Verma (CS-8902)</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">
+                      Notice of Charge Issued · 2 evidence items sealed (SHA-256)
+                    </div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded">
-                  5d 00h Remaining
+                <span className="text-[10px] font-mono font-bold text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded shrink-0 ml-2">
+                  5d Remaining
                 </span>
-              </div>
+              </Link>
 
-              <div className="p-3 rounded-xl bg-white/10 border border-white/15 backdrop-blur-md flex items-center justify-between text-xs hover:bg-white/15 transition group cursor-default">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                  <div>
-                    <div className="font-bold text-slate-100 text-[11px]">Committee Quorum Verified</div>
-                    <div className="text-[10px] text-slate-300">3 of 3 members confirmed · 0 recusals</div>
+              {/* Real Case 2: Quorum Hearing Scheduled */}
+              <Link
+                href="/cases/case-2026-00045"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 flex items-center justify-between text-xs transition group cursor-pointer block"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-slate-900 text-[11px]">EDU-2026-00045</span>
+                      <span className="text-[10px] text-slate-400">·</span>
+                      <span className="text-[10px] text-slate-600 truncate">Siddharth Rao (EE-2914)</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">
+                      Hearing Scheduled · Quorum: 3 of 4 verified
+                    </div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-blue-300 bg-blue-500/20 border border-blue-500/30 px-2 py-0.5 rounded">
-                  Quorum Met
+                <span className="text-[10px] font-mono font-bold text-blue-900 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded shrink-0 ml-2">
+                  Quorum Pending
                 </span>
-              </div>
+              </Link>
 
-              <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 backdrop-blur-md flex items-center justify-between text-xs cursor-default">
-                <div className="flex items-center gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <div>
-                    <div className="font-bold text-emerald-200 text-[11px]">Human Decision Imposed</div>
-                    <div className="text-[10px] text-emerald-300/80">Student #CS-8902 · Educational workshop</div>
+              {/* Real Case 3: Human Decision Recorded */}
+              <Link
+                href="/cases/case-2026-00038"
+                className="p-3 rounded-xl bg-slate-50 hover:bg-slate-100/90 border border-slate-200/90 flex items-center justify-between text-xs transition group cursor-pointer block"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-slate-900 text-[11px]">EDU-2026-00038</span>
+                      <span className="text-[10px] text-slate-400">·</span>
+                      <span className="text-[10px] text-slate-600 truncate">Devanand Patel (ME-4410)</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 truncate">
+                      Human Sanction: Written Admonition + 10h Library Service
+                    </div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-bold text-purple-900 bg-purple-100 border border-purple-300 px-2 py-0.5 rounded shrink-0 ml-2">
+                  Sanction Active
+                </span>
+              </Link>
+
+              {/* Real Case 4: Closed Student Record */}
+              <Link
+                href="/cases/case-2025-00118"
+                className="p-3 rounded-xl bg-emerald-50/70 hover:bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs transition group cursor-pointer block"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-emerald-950 text-[11px]">EDU-2025-00118</span>
+                      <span className="text-[10px] text-emerald-600">·</span>
+                      <span className="text-[10px] text-emerald-900 font-medium truncate">Rahul Verma (CS-8902)</span>
+                    </div>
+                    <div className="text-[10px] text-emerald-700 truncate">
+                      Closed &amp; Compliant · Completed 8h Citation Workshop
+                    </div>
+                  </div>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-emerald-900 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded shrink-0 ml-2">
                   Concluded
                 </span>
-              </div>
+              </Link>
+            </div>
+
+            {/* Bottom Link to Full Registry */}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 font-mono">SHA-256 Ledger Synced</span>
+              <Link
+                href="/cases"
+                className="font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
+              >
+                <span>View Full Registry ({allCases.length || 5})</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* NEW FEATURE: Agent 47 Live Sandbox & Policy Clause RAG Simulator */}
-      <section id="live-agent" className="bg-[#0B1E33] rounded-3xl p-8 sm:p-12 text-white border border-[#1E3A5F] shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-3xl mx-auto text-center space-y-2 mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            <span>INTERACTIVE AGENT 47 SANDBOX</span>
+      {/* Plain-English "How It Works" 4-Step Cards for Everyone */}
+      <section className="space-y-6">
+        <div className="text-center max-w-2xl mx-auto space-y-1.5">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Simple, Transparent &amp; Fair for Everyone</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-            Experience the Student Discipline Agent in Action
+          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+            How EDUguard Protects Due Process
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300">
-            See how Agent 47 extracts factual narratives, classifies offence codes, matches statutory clauses,
-            and formulates prescribed notices without making unauthorized decisions on guilt.
+          <p className="text-xs sm:text-sm text-slate-500">
+            Designed for students, teachers, and university administrators alike — no complicated legal jargon needed.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-emerald-300 transition">
+            <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+              1
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm">Ask in Plain English</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Ask about plagiarism, cheating, or conduct rules in simple everyday words without digging through manuals.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-emerald-300 transition">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">
+              2
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm">Find Similar Past Cases</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Compare current incidents to anonymized historical cases across 6 factors to ensure fair, consistent outcomes.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-emerald-300 transition">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm">
+              3
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm">Track All Deadlines</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Automatic countdowns ensure students get full notice (5 days to reply, 14 days to appeal) with zero missed steps.
+            </p>
+          </div>
+
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-2 hover:border-emerald-300 transition">
+            <div className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-sm">
+              4
+            </div>
+            <h3 className="font-bold text-slate-900 text-sm">Humans Make Decisions</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              The AI organizes information and notices, but authorized human committees evaluate evidence and decide outcomes.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* EDUguard Live Sandbox & Policy Simulator (Light Theme) */}
+      <section id="live-agent" className="bg-gradient-to-br from-white via-slate-50/70 to-emerald-50/30 rounded-3xl p-8 sm:p-12 text-slate-900 border border-slate-200 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+        <div className="max-w-3xl mx-auto text-center space-y-2 mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-mono font-bold">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+            <span>INTERACTIVE POLICY &amp; CASE SIMULATOR</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            See EDUguard Analyze Real Scenarios
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600">
+            Select an incident below to see how EDUguard identifies policy clauses and procedural deadlines without making unauthorized judgments on guilt.
           </p>
         </div>
 
@@ -387,53 +545,53 @@ export default function LandingPage() {
               onClick={() => handleRunAgentDemo(idx)}
               className={`p-4 rounded-2xl text-left text-xs transition border ${
                 selectedIncident === idx
-                  ? 'bg-emerald-600/20 border-emerald-500 text-white shadow-md'
-                  : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+                  ? 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-xs ring-1 ring-emerald-500/30'
+                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'
               }`}
             >
               <div className="flex items-center justify-between mb-1">
-                <span className="font-mono font-bold text-[10px] text-emerald-400 uppercase">
+                <span className="font-mono font-bold text-[10px] text-emerald-700 uppercase">
                   Scenario {idx + 1}
                 </span>
-                <span className="font-mono text-[10px] text-slate-400">{sc.code}</span>
+                <span className="font-mono text-[10px] text-slate-500">{sc.code}</span>
               </div>
-              <p className="font-bold text-slate-100 text-xs">{sc.title}</p>
+              <p className="font-bold text-slate-900 text-xs">{sc.title}</p>
             </button>
           ))}
         </div>
 
-        {/* Live Simulation Output Terminal */}
-        <div className="bg-[#071321] rounded-2xl border border-[#1E3A5F] p-6 shadow-inner space-y-5">
-          <div className="flex items-center justify-between border-b border-[#1E3A5F]/80 pb-3 text-xs">
+        {/* Live Simulation Output Terminal (Light) */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500/80" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-3 h-3 rounded-full bg-green-500/80" />
-              <span className="font-mono text-slate-400 text-[11px] ml-2">
-                Agent 47 · Statutory RAG Engine v2.4
+              <div className="w-3 h-3 rounded-full bg-red-400" />
+              <div className="w-3 h-3 rounded-full bg-amber-400" />
+              <div className="w-3 h-3 rounded-full bg-emerald-400" />
+              <span className="font-mono text-slate-500 text-[11px] ml-2">
+                EDUguard · Statutory Policy Matcher v2.4
               </span>
             </div>
             <div className="flex items-center gap-2">
               {isAgentRunning ? (
-                <span className="text-[11px] font-mono text-amber-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  Parsing Factual Signal...
+                <span className="text-[11px] font-mono text-amber-700 flex items-center gap-1.5 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  Analyzing Incident Signal...
                 </span>
               ) : (
-                <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  Statutory Mapping Ready
+                <span className="text-[11px] font-mono text-emerald-700 flex items-center gap-1.5 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  Policy Match Ready
                 </span>
               )}
             </div>
           </div>
 
           {/* Incident Input Narrative */}
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-xs space-y-1">
-            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">
-              Incident Narrative (Input Data):
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block font-bold">
+              Incident Report (Input):
             </span>
-            <p className="text-slate-200 font-sans text-xs sm:text-sm leading-relaxed">
+            <p className="text-slate-800 font-sans text-xs sm:text-sm leading-relaxed font-medium">
               &ldquo;{demoScenarios[selectedIncident].text}&rdquo;
             </p>
           </div>
@@ -441,49 +599,49 @@ export default function LandingPage() {
           {/* Agent Output Processing Grid */}
           {agentOutputVisible && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-1">
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
                   <Search className="w-3.5 h-3.5" />
-                  <span>Statutory Policy Clause Citation</span>
+                  <span>Applicable Policy Clause</span>
                 </div>
-                <p className="text-slate-100 font-semibold text-xs">
+                <p className="text-slate-900 font-semibold text-xs">
                   {demoScenarios[selectedIncident].clause}
                 </p>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-1">
-                  <span className="font-mono text-emerald-300">Category: {demoScenarios[selectedIncident].code}</span>
+                <div className="flex items-center gap-2 text-[11px] text-slate-600 pt-1">
+                  <span className="font-mono text-emerald-800 font-semibold">Category: {demoScenarios[selectedIncident].code}</span>
                   <span>·</span>
                   <span>Procedure: {demoScenarios[selectedIncident].recommendedProcedure}</span>
                 </div>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2">
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Mandatory Due-Process Deadlines</span>
+                  <span>Due-Process Deadlines</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Student Response Window:</span>
-                  <span className="font-bold font-mono text-amber-300">
+                  <span className="text-slate-600">Student Response Window:</span>
+                  <span className="font-bold font-mono text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                     {demoScenarios[selectedIncident].statutoryDeadline}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">Retention &amp; Purge Clock:</span>
-                  <span className="font-mono text-slate-300">{demoScenarios[selectedIncident].retentionYears}</span>
+                  <span className="text-slate-600">Record Retention Period:</span>
+                  <span className="font-mono text-slate-700">{demoScenarios[selectedIncident].retentionYears}</span>
                 </div>
               </div>
 
               {/* Strict Non-Punitive Guardrail Banner */}
-              <div className="md:col-span-2 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3 text-xs">
-                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="md:col-span-2 p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 text-xs">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-bold text-emerald-300 text-xs">
-                    Agent 47 Statutory Guardrail Active
+                  <h4 className="font-bold text-emerald-900 text-xs">
+                    Institutional Due-Process Guardrail Active
                   </h4>
-                  <p className="text-slate-300 text-[11px] leading-relaxed mt-0.5">
+                  <p className="text-emerald-800 text-[11px] leading-relaxed mt-0.5">
                     This analysis is <strong>strictly informational and procedural</strong>.
-                    The Student Discipline Agent does not judge guilt, rank sanctions, or evaluate respondent credibility.
-                    Only the human Disciplinary Committee has statutory authority to adjudicate.
+                    EDUguard does not judge guilt, rank punishments, or evaluate student credibility.
+                    Only the authorized human Disciplinary Committee has authority to make final determinations.
                   </p>
                 </div>
               </div>
@@ -493,17 +651,17 @@ export default function LandingPage() {
           <div className="flex items-center justify-between pt-2">
             <Link
               href="/precedents"
-              className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold transition"
+              className="text-xs text-emerald-700 hover:text-emerald-800 flex items-center gap-1 font-semibold transition"
             >
-              <span>Explore full institutional precedent repository</span>
+              <span>Explore full precedent comparison archive</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
 
             <Link
               href="/cases/new"
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition"
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition"
             >
-              File Real Incident Report
+              File Incident Report
             </Link>
           </div>
         </div>
@@ -668,7 +826,7 @@ export default function LandingPage() {
             AI Safeguards + Human Authority
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Agent 47 analyzes data and ensures statutory compliance. Humans alone decide guilt and sanctions.
+            EDUguard analyzes data and ensures statutory compliance. Humans alone decide guilt and sanctions.
           </p>
         </div>
 
@@ -717,32 +875,32 @@ export default function LandingPage() {
           </div>
 
           {/* Human Decision Card */}
-          <div className="p-6 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-3">
-            <div className="flex items-center gap-2 font-bold text-white text-sm">
-              <div className="w-7 h-7 rounded-lg bg-white/20 text-white flex items-center justify-center font-bold text-xs">
+          <div className="p-6 rounded-2xl bg-emerald-50/70 border border-emerald-200 space-y-3">
+            <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+              <div className="w-7 h-7 rounded-lg bg-emerald-200 text-emerald-900 flex items-center justify-center font-bold text-xs">
                 👤
               </div>
               <span>Human Authority (Sole Discretion)</span>
             </div>
-            <ul className="space-y-1.5 text-xs text-slate-300">
+            <ul className="space-y-1.5 text-xs text-slate-700">
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Approves or quashes disciplinary charges
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Conducts oral committee hearings &amp; testimony
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Evaluates mitigating &amp; extenuating factors
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Issues reasoned sanction finding with quorum sign-off
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
                 Presides over statutory appellate petitions
               </li>
             </ul>
@@ -782,12 +940,12 @@ export default function LandingPage() {
       </section>
 
       {/* Bottom CTA Banner */}
-      <section className="bg-[#0B1E33] rounded-3xl p-8 sm:p-12 text-white border border-[#1E3A5F] flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+      <section className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 rounded-3xl p-8 sm:p-12 text-white shadow-xl shadow-emerald-700/20 flex flex-col md:flex-row items-center justify-between gap-8 border border-emerald-400/30">
         <div className="space-y-2 max-w-xl">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
             Protect both institutional integrity and student rights.
           </h2>
-          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
             Ensure every disciplinary action stands up to legal scrutiny, audit inspection, and educational fairness.
           </p>
         </div>
@@ -795,14 +953,14 @@ export default function LandingPage() {
         <div className="flex items-center gap-3 shrink-0 flex-wrap">
           <Link
             href="/dashboard"
-            className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-md transition"
+            className="px-6 py-3 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-xs sm:text-sm shadow-md transition"
           >
             Launch Command Center
           </Link>
 
           <Link
             href="/student"
-            className="px-5 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-xs sm:text-sm transition"
+            className="px-5 py-3 rounded-xl bg-emerald-800/60 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm border border-emerald-400/40 transition"
           >
             Student Portal
           </Link>

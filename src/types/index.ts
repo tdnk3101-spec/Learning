@@ -1,4 +1,5 @@
-// Core Type Definitions for Student Discipline Management System ("Agent 47")
+// Core Type Definitions for EDUguard — Student Discipline Agent
+// Strictly enforces institutional due-process, procedural compliance, and cryptographic auditability
 
 export type CaseStatus =
   | 'INTAKE'
@@ -14,17 +15,25 @@ export type CaseStatus =
 
 export type SeverityLevel = 'MINOR' | 'MODERATE' | 'MAJOR' | 'CRITICAL';
 
-export type ChecklistStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'WAIVED';
+export type ChecklistStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 
+// Statutory notice types conforming to Step 4 of EDUguard workflow
 export type NoticeType =
+  | 'SHOW_CAUSE_NOTICE'
+  | 'HEARING_NOTICE'
+  | 'COMMITTEE_COMMUNICATION'
+  | 'DECISION_COMMUNICATION'
+  | 'APPEAL_INFO'
+  // Backward-compatibility aliases
   | 'NOTICE_OF_CHARGE'
   | 'HEARING_SUMMONS'
-  | 'DECISION_ORDER'
-  | 'APPEAL_INFO';
+  | 'DECISION_ORDER';
 
 export type DeliveryStatus = 'DRAFT' | 'DISPATCHED' | 'DELIVERED' | 'FAILED';
 
 export type UserRole =
+  | 'STUDENT'
+  | 'FACULTY'
   | 'ADMIN_REGISTRAR'
   | 'HEAD_OF_DEPARTMENT'
   | 'DEAN_STUDENT_AFFAIRS'
@@ -39,12 +48,19 @@ export interface UserPersona {
   designation: string;
   email: string;
   avatarUrl?: string;
+  studentRollNo?: string;
+  studentBatch?: string;
 }
 
+// 5-Point Policy & Offence Mapping (Step 2 of EDUguard workflow)
 export interface OffenceCategory {
   id: string;
   code: string; // e.g. "ACAD-01"
-  name: string;
+  name: string; // 1. Offence Category
+  applicablePolicy: string; // 2. Applicable Policy
+  relevantClause: string; // 3. Relevant Policy Clause
+  requiredProcedure: string; // 4. Required Procedure
+  competentAuthority: string; // 5. Competent Disciplinary Authority
   severity: SeverityLevel;
   description: string;
   procedureReference: string;
@@ -66,6 +82,26 @@ export interface EvidenceItem {
   uploadedAt: string;
 }
 
+// Student / Person involved in an incident (Step 1)
+export interface PersonInvolved {
+  id: string;
+  name: string;
+  identifier: string; // e.g. Student Ref #CS-8902 or Staff ID
+  role: 'RESPONDENT' | 'COMPLAINANT' | 'INVOLVED' | 'VICTIM';
+  department?: string;
+  notes?: string;
+}
+
+// Witness record in an incident (Step 1)
+export interface Witness {
+  id: string;
+  name: string;
+  designation: string;
+  statementSummary?: string;
+  contactRef?: string;
+}
+
+// Case Incident Registration Report (Step 1)
 export interface IncidentReport {
   id: string;
   caseId: string;
@@ -74,25 +110,38 @@ export interface IncidentReport {
   description: string;
   reportingPerson: string;
   reportingDepartment: string;
+  personsInvolved: PersonInvolved[];
+  witnesses: Witness[];
   witnessCount: number;
   evidenceItems: EvidenceItem[];
   createdAt: string;
 }
 
+// Due-Process Statutory Checklist Item (Step 3)
+// Items:
+// 1. Student notified?
+// 2. Notice delivered?
+// 3. Response window provided?
+// 4. Student given right to be heard?
+// 5. Committee correctly constituted?
+// 6. Required documents submitted?
+// 7. Hearing completed?
+// 8. Decision recorded?
 export interface ProceduralChecklistItem {
   id: string;
   caseId: string;
   stepNumber: number;
-  requirement: string;
+  requirement: string; // e.g. "Student notified?"
   description: string;
   dueDate: string;
   completedAt?: string;
   completedBy?: string;
   evidenceRef?: string;
-  status: ChecklistStatus;
+  status: ChecklistStatus; // PENDING -> IN_PROGRESS -> COMPLETED
   notes?: string;
 }
 
+// Statutory Notice & Communication Record (Step 4)
 export interface Notice {
   id: string;
   caseId: string;
@@ -104,6 +153,9 @@ export interface Notice {
   generatedDocHash: string;
   deliveryStatus: DeliveryStatus;
   deliveryProof?: string;
+  acknowledgementStatus: 'PENDING' | 'ACKNOWLEDGED';
+  acknowledgedAt?: string;
+  acknowledgementNote?: string;
   responseDeadline: string;
   sentAt?: string;
   createdAt: string;
@@ -125,22 +177,34 @@ export interface CommitteeRecord {
   updatedAt: string;
 }
 
-// CRITICAL GUARDRAIL: HUMAN-WRITE-ONLY
+// Decision Record (Step 7)
+// Authorized members enter: Decision, Reasoning, Sanction Imposed, Appeal Route
+// Guardrail: The system records the decision but does not generate the decision itself.
 export interface Decision {
   id: string;
   caseId: string;
   decidedBy: string;
   decidingAuthority: string;
-  verdict: string;
-  reasoningText: string;
-  sanctionImposed: string;
+  verdict: string; // Decision
+  reasoningText: string; // Reasoning
+  sanctionImposed: string; // Sanction imposed
   sanctionStartDate?: string;
   sanctionEndDate?: string;
-  appealRoute: string;
+  appealRoute: string; // Appeal route
   appealDeadline: string;
   appealSubmitted: boolean;
   decidedAt: string;
   decisionDocHash: string;
+}
+
+// Sanction Tracking & Case Closure (Step 8)
+export interface SanctionTracking {
+  requirements: string[];
+  completionStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'OVERDUE';
+  deadline: string;
+  appealStatus: 'NO_APPEAL' | 'UNDER_REVIEW' | 'UPHELD' | 'MODIFIED' | 'DISMISSED';
+  closedAt?: string;
+  retentionExpiryDate: string;
 }
 
 // Cryptographic Append-Only Audit Entry
@@ -158,23 +222,98 @@ export interface AuditLogEntry {
   timestamp: string;
 }
 
+// Multi-Factor Precedent Matching & Similar Case Support Types
+export type IntentType = 'PREMEDITATED' | 'NEGLIGENT' | 'RECKLESS' | 'ACCIDENTAL' | 'UNPROVEN';
+export type OccurrenceType = 'FIRST_TIME' | 'REPEAT_OFFENCE';
+export type CooperationLevel = 'FULL' | 'PARTIAL' | 'OBSTRUCTIVE';
+
+export interface PrecedentProcedure {
+  hearingBody: string;
+  quorum: number;
+  durationDays: number;
+  representationProvided: boolean;
+  noticesIssued: string[];
+  hearingsCount: number;
+}
+
+export interface PrecedentOutcome {
+  finding: string;
+  sanction: string;
+  reasoningSummary: string;
+  appealOutcome: string;
+  retentionPeriodYears: number;
+}
+
+export interface PrecedentCaseAttributes {
+  cooperationLevel: CooperationLevel;
+  restitutionOffered: boolean;
+  remorseDemonstrated: boolean;
+  academicImpact?: string;
+}
+
 export interface PrecedentIndex {
   id: string;
   offenceCategoryId: string;
   categoryCode: string;
   categoryName: string;
   anonymizedCaseRef: string;
+  title?: string;
   generalizedFacts: string;
   mitigatingFactors?: string;
   aggravatingFactors?: string;
   sanctionImposedRange: string;
   yearResolved: number;
   searchKeywords: string[];
+  // Multi-factor comparison fields
+  offenceType: string;
+  intent: IntentType;
+  intentDescription: string;
+  circumstances: string;
+  severity: SeverityLevel;
+  occurrenceHistory: OccurrenceType;
+  evidencePatterns: string[];
+  caseAttributes: PrecedentCaseAttributes;
+  procedureFollowed: PrecedentProcedure;
+  outcomeRecorded: PrecedentOutcome;
+}
+
+// Multi-factor match breakdown and side-by-side analysis
+export interface MultiFactorScore {
+  overallPct: number;
+  offenceTypeScore: number; // 25%
+  intentScore: number; // 20%
+  circumstancesScore: number; // 15%
+  severityScore: number; // 15%
+  occurrenceScore: number; // 10%
+  evidenceScore: number; // 15%
+  similarityFactors: string[];
+  distinguishingFactors: string[];
+  proceduralAlignment: string;
+  outcomeConsistencyNotes: string;
+}
+
+export interface RankedPrecedentMatch {
+  precedent: PrecedentIndex;
+  score: MultiFactorScore;
+}
+
+// EDUguard Chatbot Types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  intentDetected?: string;
+  referencedCases?: string[];
+  referencedClauses?: string[];
+  guardrailTriggered?: boolean;
+  guardrailExplanation?: string;
+  suggestedPrompts?: string[];
 }
 
 export interface Case {
   id: string;
-  caseNumber: string; // e.g. DISC-2026-00042
+  caseNumber: string; // e.g. EDU-2026-00042
   title: string;
   status: CaseStatus;
   department: string;
@@ -188,6 +327,7 @@ export interface Case {
   notices: Notice[];
   committeeRecord?: CommitteeRecord;
   decision?: Decision;
+  sanctionTracking?: SanctionTracking;
   createdAt: string;
   updatedAt: string;
   retentionExpiryAt?: string;

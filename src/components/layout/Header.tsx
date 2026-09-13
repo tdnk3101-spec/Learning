@@ -90,7 +90,7 @@ export default function Header() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search docket #, student ref, or charge..."
+            placeholder="Search EDUguard docket #, student ref, or charge..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             onKeyDown={handleSearchKeyDown}
@@ -209,7 +209,7 @@ export default function Header() {
             <div className="space-y-2.5 text-xs">
               <div className="p-3 bg-emerald-50/70 rounded-xl border border-emerald-200 flex items-center gap-2 text-emerald-800 font-medium">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Connected &amp; Synchronized with Agent 47 Architecture</span>
+                <span>Connected &amp; Synchronized with EDUguard Architecture</span>
               </div>
 
               <div className="space-y-1.5 bg-slate-50 p-3.5 rounded-xl border border-slate-200/80 font-mono text-[11px]">

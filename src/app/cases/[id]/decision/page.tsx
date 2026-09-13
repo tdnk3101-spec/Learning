@@ -10,6 +10,7 @@ import {
   Lock,
   ArrowLeft,
   Scale,
+  AlertTriangle,
 } from 'lucide-react';
 import { getCaseById, getCurrentPersona, recordHumanDecision } from '@/lib/store';
 
@@ -110,7 +111,7 @@ export default function RecordDecisionPage({
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-              Final Stage: Human Deliberation
+              Step 7: Decision Recording
             </span>
             <span className="text-xs text-slate-400">·</span>
             <span className="font-mono text-xs font-bold text-slate-900">{caseItem.caseNumber}</span>
@@ -124,27 +125,29 @@ export default function RecordDecisionPage({
         <div className="flex items-center gap-2 text-emerald-400">
           <Lock className="w-5 h-5" />
           <span className="text-xs font-bold uppercase tracking-wider">
-            Mandatory Human Deliberation Guardrail
+            Mandatory Due-Process Guardrail
           </span>
         </div>
         <p className="text-xs text-slate-300 leading-relaxed">
-          You are acting as the designated competent authority (<strong>{persona.name}</strong>).
-          In compliance with due process statutes, <strong>no automated AI model or heuristic script has write access to this record</strong>.
-          Your legal and factual rationale will be cryptographically signed and hash-chained into the permanent tribunal record.
+          Authorized committee member: <strong>{persona.name} ({persona.designation})</strong>.
         </p>
+        <div className="p-3 bg-slate-900/80 rounded-xl border border-emerald-500/30 text-emerald-300 font-semibold text-xs flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>The system records the decision but does not generate the decision itself. Disciplinary sanctions are solely human-determined.</span>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Card 1: Verdict & Sanction */}
+        {/* Field 1: Decision */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
             <Gavel className="w-4 h-4 text-emerald-600" />
-            1. Finding of Responsibility & Sanction
+            1. Decision (Determination of Responsibility)
           </h2>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Verdict / Determination <span className="text-red-500">*</span>
+              Finding / Decision Determination <span className="text-red-500">*</span>
             </label>
             <select
               value={verdict}
@@ -157,29 +160,12 @@ export default function RecordDecisionPage({
               <option value="Charge Dismissed / Exonerated">Charge Dismissed / Exonerated (No Fault Found)</option>
             </select>
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Sanction Imposed <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={sanction}
-              onChange={(e) => setSanction(e.target.value)}
-              placeholder="e.g. Formal Written Admonition + Zero grade on Assignment 4 + Mandatory Academic Ethics Seminar"
-              className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-medium"
-            />
-            <p className="text-[10px] text-slate-400 mt-1">
-              Policy guidance for {caseItem.offenceCategory.code}: {caseItem.offenceCategory.sanctionRangeGuide}
-            </p>
-          </div>
         </div>
 
-        {/* Card 2: Legal & Factual Rationale */}
+        {/* Field 2: Reasoning */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">
-            2. Reasoned Legal & Factual Justification
+            2. Reasoning (Factual &amp; Legal Rationale)
           </h2>
 
           <div>
@@ -191,22 +177,47 @@ export default function RecordDecisionPage({
               rows={5}
               value={reasoning}
               onChange={(e) => setReasoning(e.target.value)}
-              placeholder="Detail the evidence considered, credibility determinations of respondent statements, mitigating or aggravating factors, and proportionate balancing of educational objectives..."
-              className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-sans"
+              placeholder="Detail the evidence considered, credibility determinations of respondent and witness statements, mitigating or aggravating factors, and proportionate balancing of educational objectives..."
+              className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-sans leading-relaxed"
             />
           </div>
         </div>
 
-        {/* Card 3: Statutory Appellate Window */}
+        {/* Field 3: Sanction Imposed */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+          <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+            <Scale className="w-4 h-4 text-purple-600" />
+            3. Sanction Imposed
+          </h2>
+
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Specific Sanction / Corrective Mandates <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              value={sanction}
+              onChange={(e) => setSanction(e.target.value)}
+              placeholder="e.g. Formal Written Reprimand + Zero grade on Lab 4 + Mandatory Academic Integrity Seminar"
+              className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 font-medium"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">
+              Statutory guidance for {caseItem.offenceCategory.code}: {caseItem.offenceCategory.sanctionRangeGuide}
+            </p>
+          </div>
+        </div>
+
+        {/* Field 4: Appeal Route */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
             <Scale className="w-4 h-4 text-emerald-600" />
-            3. Statutory Appeal Channel & Deadlines
+            4. Appeal Route &amp; Statutory Deadlines
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Appellate Body</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Appellate Body / Channel <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 required
@@ -217,7 +228,7 @@ export default function RecordDecisionPage({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Appeal Window</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Statutory Appeal Window</label>
               <div className="px-3.5 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-semibold">
                 {statutoryAppealDays} Calendar Days from Today
               </div>
@@ -225,10 +236,10 @@ export default function RecordDecisionPage({
           </div>
         </div>
 
-        {/* Submit */}
+        {/* Submit Bar */}
         <div className="flex items-center justify-between pt-2">
           <p className="text-[11px] text-slate-500">
-            Sign and seal with authority credentials: <strong className="text-slate-700">{persona.name}</strong>
+            Recorded and signed by authorized member: <strong className="text-slate-700">{persona.name}</strong>
           </p>
 
           <button

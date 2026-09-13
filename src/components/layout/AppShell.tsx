@@ -23,44 +23,44 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-emerald-500 selection:text-white">
         {/* Top Institutional Navigation Bar */}
-        <header className="sticky top-0 z-50 bg-[#0B1727]/95 backdrop-blur-md border-b border-[#1E3A5F]/70 text-white">
+        <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs text-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
             {/* Brand */}
             <Link href="/" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#059669] to-[#10B981] flex items-center justify-center text-white shadow-lg shadow-emerald-900/40 group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#059669] to-[#10B981] flex items-center justify-center text-white shadow-md shadow-emerald-600/20 group-hover:scale-105 transition-transform shrink-0">
                 <Scale className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-extrabold text-white tracking-tight text-base sm:text-lg">
-                    Student Discipline Agent
+                  <span className="font-extrabold text-slate-900 tracking-tight text-base sm:text-lg">
+                    EDUguard
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    AGENT 47
+                  <span className="text-[10px] px-2 py-0.5 rounded font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    DISCIPLINE AGENT
                   </span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
+                <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
                   Institutional Due-Process Guardrail &amp; Workflow Orchestration
                 </p>
               </div>
             </Link>
 
             {/* Quick Links (Desktop) */}
-            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
-              <a href="#workflows" className="hover:text-emerald-400 transition">
+            <nav className="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-600">
+              <a href="#workflows" className="hover:text-emerald-700 transition">
                 9 Workflows
               </a>
-              <a href="#live-agent" className="hover:text-emerald-400 transition flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                Live RAG Demo
+              <a href="#live-agent" className="hover:text-emerald-700 transition flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Live Demo
               </a>
-              <a href="#stakeholders" className="hover:text-emerald-400 transition">
+              <a href="#stakeholders" className="hover:text-emerald-700 transition">
                 Stakeholders
               </a>
-              <a href="#guardrail" className="hover:text-emerald-400 transition">
+              <a href="#guardrail" className="hover:text-emerald-700 transition">
                 AI Guardrails
               </a>
-              <Link href="/audit" className="hover:text-emerald-400 transition">
+              <Link href="/audit" className="hover:text-emerald-700 transition">
                 SHA-256 Audit
               </Link>
             </nav>
@@ -69,15 +69,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 sm:gap-3">
               <Link
                 href="/student"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-semibold transition"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 text-xs font-semibold transition"
               >
-                <User className="w-3.5 h-3.5 text-emerald-400" />
+                <User className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Student Portal</span>
               </Link>
 
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md shadow-emerald-900/30 transition group shrink-0"
+                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition group shrink-0"
               >
                 <LayoutDashboard className="w-3.5 h-3.5" />
                 <span className="hidden xs:inline">Staff Center</span>
@@ -88,7 +88,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               {/* Mobile Landing Hamburger */}
               <button
                 onClick={() => setMobileLandingMenuOpen(!mobileLandingMenuOpen)}
-                className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition"
+                className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
                 aria-label="Toggle navigation"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -104,46 +104,46 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           {/* Mobile Collapsible Nav Menu */}
           {mobileLandingMenuOpen && (
-            <div className="md:hidden px-4 pt-2 pb-4 border-t border-[#1E3A5F]/70 bg-[#0B1727] space-y-2 text-xs font-semibold">
+            <div className="md:hidden px-4 pt-2 pb-4 border-t border-slate-200 bg-white space-y-2 text-xs font-semibold shadow-md">
               <a
                 href="#workflows"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-300 hover:text-emerald-400"
+                className="block py-2 text-slate-700 hover:text-emerald-600"
               >
                 9 Statutory Workflows
               </a>
               <a
                 href="#live-agent"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-300 hover:text-emerald-400"
+                className="block py-2 text-slate-700 hover:text-emerald-600"
               >
-                Live RAG Demo
+                Live Demo
               </a>
               <a
                 href="#stakeholders"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-300 hover:text-emerald-400"
+                className="block py-2 text-slate-700 hover:text-emerald-600"
               >
                 Stakeholders View
               </a>
               <a
                 href="#guardrail"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-300 hover:text-emerald-400"
+                className="block py-2 text-slate-700 hover:text-emerald-600"
               >
                 AI Guardrails
               </a>
               <Link
                 href="/audit"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-300 hover:text-emerald-400"
+                className="block py-2 text-slate-700 hover:text-emerald-600"
               >
                 SHA-256 Audit Trail
               </Link>
               <Link
                 href="/student"
                 onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-emerald-400 font-bold"
+                className="block py-2 text-emerald-700 font-bold"
               >
                 Student Due-Process Portal →
               </Link>
@@ -155,43 +155,43 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 w-full">{children}</main>
 
         {/* Institutional Footer */}
-        <footer className="bg-[#0B1727] text-slate-400 border-t border-[#1E3A5F]/70 py-12 px-6">
+        <footer className="bg-white text-slate-600 border-t border-slate-200 py-12 px-6">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-xs">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center font-bold">
                 <Scale className="w-4 h-4" />
               </div>
               <div>
-                <p className="font-bold text-white">Student Discipline Agent · Agent 47</p>
+                <p className="font-bold text-slate-900">EDUguard — Student Discipline Agent</p>
                 <p className="text-[11px] text-slate-500">
                   Strictly non-punitive case management with human-only sanction authority.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6 text-slate-400 flex-wrap justify-center">
-              <Link href="/login" className="hover:text-white transition">
+            <div className="flex items-center gap-6 text-slate-600 flex-wrap justify-center font-medium">
+              <Link href="/login" className="hover:text-emerald-700 transition">
                 Role Switcher (Demo)
               </Link>
-              <Link href="/cases" className="hover:text-white transition">
+              <Link href="/cases" className="hover:text-emerald-700 transition">
                 Active Dockets
               </Link>
-              <Link href="/precedents" className="hover:text-white transition">
+              <Link href="/precedents" className="hover:text-emerald-700 transition">
                 Precedents RAG
               </Link>
-              <Link href="/audit" className="hover:text-white transition">
+              <Link href="/audit" className="hover:text-emerald-700 transition">
                 Cryptographic Ledger
               </Link>
-              <Link href="/governance" className="hover:text-white transition">
+              <Link href="/governance" className="hover:text-emerald-700 transition">
                 Equity Analytics
               </Link>
-              <Link href="/retention" className="hover:text-white transition">
+              <Link href="/retention" className="hover:text-emerald-700 transition">
                 Retention Engine
               </Link>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-slate-500">
-              <Lock className="w-3.5 h-3.5 text-emerald-500" />
+              <Lock className="w-3.5 h-3.5 text-emerald-600" />
               <span>Immutable SHA-256 Hash Chaining Enforced</span>
             </div>
           </div>
@@ -209,32 +209,32 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === '/student') {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="h-16 bg-[#0B1727] text-white px-6 flex items-center justify-between border-b border-[#1E3A5F]">
+        <header className="h-16 bg-white text-slate-900 px-6 flex items-center justify-between border-b border-slate-200 shadow-xs">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center font-bold">
               <Scale className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm">Student Discipline Agent</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="font-bold text-sm text-slate-900">Student Discipline Agent</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 font-semibold">
                   Student Due-Process Portal
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400">Respondent Case Access &amp; Defense Desk</p>
+              <p className="text-[10px] text-slate-500">Respondent Case Access &amp; Defense Desk</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="text-xs text-slate-300 hover:text-white transition px-3 py-1.5 rounded-lg hover:bg-white/10"
+              className="text-xs text-slate-600 hover:text-slate-900 transition px-3 py-1.5 rounded-lg hover:bg-slate-100"
             >
               Public Home
             </Link>
             <Link
               href="/dashboard"
-              className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs"
+              className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs"
             >
               Staff Command Center
             </Link>

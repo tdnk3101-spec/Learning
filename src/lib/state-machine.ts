@@ -1,9 +1,10 @@
-// Procedural State Machine & Checklist Engine for Student Discipline ("Agent 47")
+// Procedural State Machine & Due-Process Checklist Engine for EDUguard — Student Discipline Agent
 // Strictly enforces institutional due process and prevents skipping procedural milestones
 
 import {
   Case,
   CaseStatus,
+  ChecklistStatus,
   OffenceCategory,
   ProceduralChecklistItem,
   UserRole,
@@ -19,13 +20,13 @@ export const CASE_STATUS_WORKFLOW: {
     status: 'INTAKE',
     label: 'Incident Intake',
     stepNumber: 1,
-    description: 'Incident reported, initial evidence secured with SHA-256 hashes, case assigned.',
+    description: 'Incident reported, persons and witnesses added, evidence secured with SHA-256.',
   },
   {
     status: 'NOTICE_ISSUED',
     label: 'Notice of Charge',
     stepNumber: 2,
-    description: 'Formal statement of charges dispatched in prescribed statutory format.',
+    description: 'Formal policy-compliant notice dispatched to respondent student.',
   },
   {
     status: 'RESPONSE_WINDOW',
@@ -37,25 +38,25 @@ export const CASE_STATUS_WORKFLOW: {
     status: 'COMMITTEE_CONSTITUTED',
     label: 'Committee & Quorum',
     stepNumber: 4,
-    description: 'Formal disciplinary panel constituted, verifying minimum quorum requirements.',
+    description: 'Disciplinary committee constituted, verifying minimum quorum and absence of bias.',
   },
   {
     status: 'HEARING_SCHEDULED',
-    label: 'Hearing & Summons',
+    label: 'Hearing & Representation',
     stepNumber: 5,
-    description: 'Summons issued, date/venue set, procedural right-to-be-heard protected.',
+    description: 'Hearing summons issued, right to be heard safeguarded.',
   },
   {
     status: 'DECISION_RECORDED',
     label: 'Human Decision',
     stepNumber: 6,
-    description: 'Reasoned order and sanction recorded strictly by named human authority.',
+    description: 'Reasoned order and sanction recorded strictly by authorized human authority.',
   },
   {
     status: 'APPEAL_WINDOW',
     label: 'Appeal Period',
     stepNumber: 7,
-    description: 'Statutory 14-day appeal period open with designated appellate authority.',
+    description: 'Statutory appeal window open with designated appellate authority.',
   },
   {
     status: 'COMPLIANCE_TRACKING',
@@ -72,7 +73,31 @@ export const CASE_STATUS_WORKFLOW: {
 ];
 
 /**
- * Deterministically generates procedural checklist items from the offence policy template
+ * Cycle checklist status through: PENDING -> IN_PROGRESS -> COMPLETED -> PENDING
+ */
+export function cycleChecklistStatus(status: ChecklistStatus): ChecklistStatus {
+  switch (status) {
+    case 'PENDING':
+      return 'IN_PROGRESS';
+    case 'IN_PROGRESS':
+      return 'COMPLETED';
+    case 'COMPLETED':
+      return 'PENDING';
+    default:
+      return 'PENDING';
+  }
+}
+
+/**
+ * Deterministically generates the 8 statutory due-process checklist items as specified in Step 3 of EDUguard:
+ * 1. Student notified?
+ * 2. Notice delivered?
+ * 3. Response window provided?
+ * 4. Student given right to be heard?
+ * 5. Committee correctly constituted?
+ * 6. Required documents submitted?
+ * 7. Hearing completed?
+ * 8. Decision recorded?
  */
 export function generateProceduralChecklist(
   caseId: string,
@@ -90,20 +115,17 @@ export function generateProceduralChecklist(
       id: `chk-${caseId}-1`,
       caseId,
       stepNumber: 1,
-      requirement: 'Incident Evidence Verification & Hash Registry',
-      description: 'Collect statements and compute SHA-256 integrity checksums for all files.',
+      requirement: 'Student notified?',
+      description: `Formal disciplinary communication prepared and dispatched under ${category.applicablePolicy}.`,
       dueDate: addDays(startDate, 1),
-      completedAt: new Date().toISOString(),
-      completedBy: 'System Auto-Audit',
-      status: 'COMPLETED',
-      notes: 'Initial evidence locker sealed with cryptographic hash logging.',
+      status: 'PENDING',
     },
     {
       id: `chk-${caseId}-2`,
       caseId,
       stepNumber: 2,
-      requirement: 'Issue Prescribed Notice of Charge',
-      description: `Prepare and dispatch formal Notice of Charge citing Institutional Code ${category.procedureReference}.`,
+      requirement: 'Notice delivered?',
+      description: 'Proof of electronic delivery or physical service logged with delivery receipt timestamp.',
       dueDate: addDays(startDate, 2),
       status: 'PENDING',
     },
@@ -111,8 +133,8 @@ export function generateProceduralChecklist(
       id: `chk-${caseId}-3`,
       caseId,
       stepNumber: 3,
-      requirement: `Statutory Response Window (${category.responseWindowDays} Days)`,
-      description: 'Await student written statement or acknowledgment of charges.',
+      requirement: 'Response window provided?',
+      description: `Mandatory statutory response window of ${category.responseWindowDays} calendar days afforded to respondent.`,
       dueDate: addDays(startDate, 2 + category.responseWindowDays),
       status: 'PENDING',
     },
@@ -120,8 +142,8 @@ export function generateProceduralChecklist(
       id: `chk-${caseId}-4`,
       caseId,
       stepNumber: 4,
-      requirement: `Constitute Disciplinary Committee (Quorum: ${category.defaultQuorum})`,
-      description: `Formal nomination of bench members by Dean of Student Affairs meeting minimum quorum of ${category.defaultQuorum}.`,
+      requirement: 'Student given right to be heard?',
+      description: 'Opportunity to submit written statement, examine evidence, and request an oral representation advocate.',
       dueDate: addDays(startDate, 3 + category.responseWindowDays),
       status: 'PENDING',
     },
@@ -129,36 +151,36 @@ export function generateProceduralChecklist(
       id: `chk-${caseId}-5`,
       caseId,
       stepNumber: 5,
-      requirement: 'Issue Hearing Summons with 72-Hour Notice',
-      description: 'Dispatch summons specifying date, venue, committee panel, and right to representative.',
-      dueDate: addDays(startDate, 6 + category.responseWindowDays),
+      requirement: 'Committee correctly constituted?',
+      description: `Panel verified for statutory quorum (min ${category.defaultQuorum} members) and formal conflict-of-interest disclosures signed.`,
+      dueDate: addDays(startDate, 4 + category.responseWindowDays),
       status: 'PENDING',
     },
     {
       id: `chk-${caseId}-6`,
       caseId,
       stepNumber: 6,
-      requirement: 'Human Deliberation & Reasoned Order Entry',
-      description: 'Named deciding authority enters written reasoning and sanction. AI generation forbidden.',
-      dueDate: addDays(startDate, 9 + category.responseWindowDays),
+      requirement: 'Required documents submitted?',
+      description: 'Incident report, witness statements, student response, and sealed SHA-256 evidence deposited in docket.',
+      dueDate: addDays(startDate, 6 + category.responseWindowDays),
       status: 'PENDING',
     },
     {
       id: `chk-${caseId}-7`,
       caseId,
       stepNumber: 7,
-      requirement: `Statutory Appeal Window (${category.appealWindowDays} Days)`,
-      description: 'Permit submission of formal appeal to Executive Appeals Board before sanction execution.',
-      dueDate: addDays(startDate, 9 + category.responseWindowDays + category.appealWindowDays),
+      requirement: 'Hearing completed?',
+      description: 'Oral inquest convened with respondent attendance recorded and deliberation minutes logged.',
+      dueDate: addDays(startDate, 8 + category.responseWindowDays),
       status: 'PENDING',
     },
     {
       id: `chk-${caseId}-8`,
       caseId,
       stepNumber: 8,
-      requirement: 'Sanction Compliance Verification & Docket Closure',
-      description: `Confirm completion of remedial sanctions and set retention expiry for ${category.retentionYears} years.`,
-      dueDate: addDays(startDate, 30 + category.responseWindowDays),
+      requirement: 'Decision recorded?',
+      description: 'Authorized disciplinary authority enters reasoned order, findings, sanction, and appeal route.',
+      dueDate: addDays(startDate, 10 + category.responseWindowDays),
       status: 'PENDING',
     },
   ];
@@ -177,7 +199,7 @@ export function canTransitionTo(
     return { allowed: false, reason: 'Governance viewers have strictly read-only analytical access.' };
   }
 
-  // Guardrail check: Decision recorded can only be performed with a human decision object
+  // Guardrail check: Decision recorded can only be performed by authorized roles
   if (targetStatus === 'DECISION_RECORDED') {
     if (userRole !== 'DEAN_STUDENT_AFFAIRS' && userRole !== 'COMMITTEE_MEMBER') {
       return { allowed: false, reason: 'Decisions can only be recorded by the Dean or assigned Committee Member.' };

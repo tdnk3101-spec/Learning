@@ -17,6 +17,7 @@ import {
   History,
   Home,
   X,
+  Sparkles,
 } from 'lucide-react';
 import { getCurrentPersona, setCurrentPersona } from '@/lib/store';
 import { USER_PERSONAS } from '@/lib/mock-data';
@@ -59,7 +60,7 @@ export default function Sidebar() {
 
   const navItems = [
     {
-      label: 'Home / Public Overview',
+      label: 'Home / Overview',
       href: '/',
       icon: Home,
       rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER', 'GOVERNANCE_VIEWER'],
@@ -69,6 +70,13 @@ export default function Sidebar() {
       href: '/dashboard',
       icon: LayoutDashboard,
       rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER', 'GOVERNANCE_VIEWER'],
+    },
+    {
+      label: 'EDUguard AI Assistant',
+      href: '/assistant',
+      icon: Sparkles,
+      rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER', 'GOVERNANCE_VIEWER'],
+      badge: '120B AI',
     },
     {
       label: 'Active Dockets',
@@ -89,10 +97,11 @@ export default function Sidebar() {
       rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT'],
     },
     {
-      label: 'Precedents & Policy',
+      label: 'Precedents & Similar Cases',
       href: '/precedents',
       icon: Scale,
       rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER'],
+      badge: 'Matcher',
     },
     {
       label: 'Retention & Purge',
@@ -115,22 +124,22 @@ export default function Sidebar() {
   ];
 
   const sidebarContent = (
-    <div className="flex flex-col h-full select-none">
+    <div className="flex flex-col h-full select-none bg-white text-slate-800">
       {/* Brand & Header */}
-      <div className="p-4 sm:p-5 border-b border-[#1E3A5F]/60 flex items-center justify-between gap-3">
+      <div className="p-5 border-b border-slate-200/80 flex items-center justify-between gap-3 bg-white">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#059669] to-[#10B981] flex items-center justify-center text-white shadow-lg shadow-emerald-900/30 shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-emerald-500 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 shrink-0">
             <Scale className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-bold text-white tracking-tight text-sm">Student Discipline</span>
+              <span className="font-extrabold text-slate-900 tracking-tight text-base">EDUguard</span>
             </div>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                AGENT 47
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                DISCIPLINE AGENT
               </span>
-              <p className="text-[10px] text-slate-400 font-medium">Due-Process Engine</p>
+              <p className="text-[10px] text-slate-500 font-medium">Due-Process</p>
             </div>
           </div>
         </Link>
@@ -138,22 +147,22 @@ export default function Sidebar() {
         {/* Mobile Close (X) button */}
         <button
           onClick={() => setIsMobileOpen(false)}
-          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+          className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
           aria-label="Close navigation"
         >
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Current User Persona Card */}
-      <div className="p-4 border-b border-[#1E3A5F]/60 bg-[#0E1F35]/70">
+      {/* Current User Persona Card (Light Style) */}
+      <div className="p-4 border-b border-slate-200/80 bg-slate-50/70">
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
             Active Persona
           </span>
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1 transition"
+            className="text-[11px] text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 transition"
           >
             Switch Role
             <ChevronRight className={`w-3 h-3 transition-transform ${showRoleMenu ? 'rotate-90' : ''}`} />
@@ -161,14 +170,14 @@ export default function Sidebar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-emerald-700/40 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-300 text-sm shrink-0">
+          <div className="w-9 h-9 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center font-bold text-emerald-800 text-sm shrink-0">
             {currentPersona.name.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-white truncate">{currentPersona.name}</p>
-            <p className="text-[11px] text-slate-400 truncate">{currentPersona.designation}</p>
+            <p className="text-xs font-bold text-slate-900 truncate">{currentPersona.name}</p>
+            <p className="text-[11px] text-slate-500 truncate">{currentPersona.designation}</p>
             <div className="mt-1">
-              <span className="inline-block text-[9px] font-mono uppercase px-2 py-0.5 rounded bg-[#1A365D] text-blue-300 border border-blue-400/30">
+              <span className="inline-block text-[9px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 font-semibold border border-emerald-200">
                 {currentPersona.role.replace(/_/g, ' ')}
               </span>
             </div>
@@ -177,23 +186,23 @@ export default function Sidebar() {
 
         {/* Switch Persona Dropdown Menu */}
         {showRoleMenu && (
-          <div className="mt-3 p-2 bg-[#0B1727] rounded-lg border border-[#1E3A5F] shadow-xl space-y-1">
-            <p className="text-[10px] text-slate-400 font-semibold px-2 py-1">Simulate User Persona:</p>
+          <div className="mt-3 p-2 bg-white rounded-xl border border-slate-200 shadow-xl space-y-1">
+            <p className="text-[10px] text-slate-400 font-bold px-2 py-1 uppercase tracking-wider">Simulate User Persona:</p>
             {USER_PERSONAS.map((p) => (
               <button
                 key={p.id}
                 onClick={() => handleRoleChange(p.id)}
-                className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition flex items-center justify-between ${
+                className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition flex items-center justify-between ${
                   p.id === currentPersona.id
-                    ? 'bg-emerald-600 text-white font-medium'
-                    : 'text-slate-300 hover:bg-[#152B47]'
+                    ? 'bg-emerald-50 text-emerald-900 font-bold border border-emerald-200'
+                    : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
                 <div>
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-[10px] opacity-75">{p.designation}</div>
+                  <div className="font-semibold">{p.name}</div>
+                  <div className="text-[10px] text-slate-500">{p.designation}</div>
                 </div>
-                {p.id === currentPersona.id && <UserCheck className="w-3.5 h-3.5" />}
+                {p.id === currentPersona.id && <UserCheck className="w-3.5 h-3.5 text-emerald-600" />}
               </button>
             ))}
           </div>
@@ -202,7 +211,7 @@ export default function Sidebar() {
 
       {/* Navigation Links */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <div className="px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-slate-500">
+        <div className="px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-slate-400">
           Workflows &amp; Dockets
         </div>
         {navItems.map((item) => {
@@ -218,34 +227,39 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               onClick={() => setIsMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium transition group ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition group ${
                 isActive
-                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-900/40'
-                  : 'text-slate-300 hover:bg-[#12243D] hover:text-white'
+                  ? 'bg-emerald-50 text-emerald-800 shadow-xs border border-emerald-200'
+                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
               <item.icon
                 className={`w-4 h-4 transition shrink-0 ${
-                  isActive ? 'text-white' : 'text-slate-400 group-hover:text-emerald-400'
+                  isActive ? 'text-emerald-600' : 'text-slate-400 group-hover:text-emerald-600'
                 }`}
               />
               <span className="flex-1 truncate">{item.label}</span>
+              {'badge' in item && Boolean(item.badge) && (
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold border border-emerald-200">
+                  {String(item.badge)}
+                </span>
+              )}
             </Link>
           );
         })}
       </nav>
 
-      {/* Strict Guardrail Badge */}
-      <div className="p-4 border-t border-[#1E3A5F]/60 bg-[#081220] shrink-0">
-        <div className="p-3 rounded-xl bg-gradient-to-br from-[#0F233A] to-[#0A1A2E] border border-emerald-500/30">
+      {/* Friendly Light Guardrail Badge */}
+      <div className="p-4 border-t border-slate-200/80 bg-slate-50/60 shrink-0">
+        <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200">
           <div className="flex items-center gap-2 mb-1">
-            <ShieldAlert className="w-4 h-4 text-emerald-400 shrink-0" />
-            <span className="text-[11px] font-bold text-emerald-300">Statutory Guardrail</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span className="text-xs font-bold text-emerald-900">Fairness &amp; Due Process</span>
           </div>
-          <p className="text-[10px] text-slate-300 leading-relaxed">
-            <strong className="text-white">Agent 47.</strong> Automated procedural compliance engine.
-            <span className="block text-emerald-400 font-semibold mt-0.5">
-              Humans alone decide guilt &amp; sanctions.
+          <p className="text-[11px] text-slate-600 leading-relaxed">
+            <strong className="text-slate-800">EDUguard</strong> provides information and precedent matching.
+            <span className="block text-emerald-700 font-semibold mt-0.5">
+              Authorized humans alone decide guilt &amp; penalties.
             </span>
           </p>
         </div>
@@ -255,23 +269,23 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* 1. Desktop & Laptop Sidebar (Fixed & visible on screens >= 1024px) */}
-      <aside className="hidden lg:flex w-72 bg-[#0B1727] text-slate-200 flex-col shrink-0 border-r border-[#1E3A5F] h-screen sticky top-0">
+      {/* 1. Desktop Sidebar (Fixed & visible on screens >= 1024px) */}
+      <aside className="hidden lg:flex w-72 bg-white text-slate-800 flex-col shrink-0 border-r border-slate-200/90 h-screen sticky top-0 shadow-xs">
         {sidebarContent}
       </aside>
 
-      {/* 2. Mobile & Tablet Off-Canvas Drawer (< 1024px) */}
+      {/* 2. Mobile Off-Canvas Drawer (< 1024px) */}
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           {/* Backdrop Blur Overlay */}
           <div
             onClick={() => setIsMobileOpen(false)}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
             aria-hidden="true"
           />
 
           {/* Drawer Panel */}
-          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-[#0B1727] text-slate-200 z-50 shadow-2xl border-r border-[#1E3A5F]">
+          <div className="relative flex-1 flex flex-col max-w-xs w-full bg-white text-slate-800 z-50 shadow-2xl border-r border-slate-200">
             {sidebarContent}
           </div>
         </div>
