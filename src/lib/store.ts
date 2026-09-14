@@ -151,21 +151,30 @@ export function getAllPersonas(): UserPersona[] {
 }
 
 export function setCurrentPersona(personaId: string): UserPersona {
-  let found = activePersonas.find((p) => p.id === personaId) || USER_PERSONAS.find((p) => p.id === personaId);
+  const cleanId = personaId.trim();
+  const lower = cleanId.toLowerCase();
+
+  let found = activePersonas.find((p) => 
+    p.id === cleanId || 
+    (p.employeeId && p.employeeId.toLowerCase() === lower) ||
+    p.email.toLowerCase() === lower ||
+    (p.studentRollNo && p.studentRollNo.toLowerCase() === lower)
+  ) || USER_PERSONAS.find((p) => 
+    p.id === cleanId || 
+    (p.employeeId && p.employeeId.toLowerCase() === lower) ||
+    p.email.toLowerCase() === lower ||
+    (p.studentRollNo && p.studentRollNo.toLowerCase() === lower)
+  );
   
-  // Fallback for student portal id
-  if (!found && (personaId === 'user-student-portal' || personaId.toLowerCase().includes('student'))) {
-    found = USER_PERSONAS.find((p) => p.role === 'STUDENT') || {
-      id: 'user-student-portal',
-      name: 'Rahul Verma',
-      role: 'STUDENT',
-      department: 'Computer Science & Engineering',
-      designation: 'Undergraduate Student (B.Tech CSE)',
-      email: 'rahul.verma@student.institution.edu',
-      studentRollNo: 'CS-8902',
-      studentBatch: '2024 - 2028',
-      avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
-    };
+  // Fallback for student portal or generic student
+  if (!found) {
+    if (lower.includes('rahul') || lower === 'cs-8902' || lower === 'user-student-portal') {
+      found = USER_PERSONAS.find((p) => p.id === 'user-student-portal');
+    } else if (lower.includes('ananya') || lower === 'cs-9104' || lower === 'user-student-general') {
+      found = USER_PERSONAS.find((p) => p.id === 'user-student-general');
+    } else if (lower.includes('student')) {
+      found = USER_PERSONAS.find((p) => p.role === 'STUDENT');
+    }
   }
 
   if (found) {
@@ -267,12 +276,28 @@ export function getFilteredCases(persona: UserPersona = currentPersona): Case[] 
   }
 
   if (persona.role === 'STUDENT') {
-    const roll = persona.studentRollNo || 'CS-8902';
-    return casesStore.filter((c) => 
-      c.studentDisplayRef.includes(roll) || 
-      c.studentDisplayRef.includes('CS-8902') ||
-      c.incidentReport?.personsInvolved?.some((p) => p.name.includes(persona.name) || p.identifier.includes(roll))
-    );
+    const roll = persona.studentRollNo?.toLowerCase();
+    const activeCase = persona.activeCaseId?.toLowerCase();
+    
+    // If student has a verified activeCaseId, return that specific case
+    if (activeCase) {
+      const matched = casesStore.filter((c) =>
+        c.caseNumber.toLowerCase() === activeCase || c.id.toLowerCase() === activeCase
+      );
+      if (matched.length > 0) return matched;
+    }
+
+    // If student has a specific roll number and is assigned to a case
+    if (roll) {
+      const matched = casesStore.filter((c) =>
+        c.studentDisplayRef.toLowerCase().includes(roll) ||
+        c.incidentReport?.personsInvolved?.some((p) => p.identifier.toLowerCase().includes(roll))
+      );
+      if (matched.length > 0) return matched;
+    }
+
+    // General campus students have no active disciplinary proceedings
+    return [];
   }
 
   if (persona.role === 'HEAD_OF_DEPARTMENT') {
@@ -306,7 +331,8 @@ export function getAllClosedCases(): Case[] {
   return casesStore.filter((c) => c.status === 'CLOSED');
 }
 
-export function getStudentCases(studentRef: string = 'CS-8902'): Case[] {
+export function getStudentCases(studentRef?: string): Case[] {
+  if (!studentRef) return [];
   const ref = studentRef.toLowerCase();
   return casesStore.filter(
     (c) =>
@@ -315,7 +341,8 @@ export function getStudentCases(studentRef: string = 'CS-8902'): Case[] {
   );
 }
 
-export function getStudentClosedCases(studentRef: string = 'CS-8902'): Case[] {
+export function getStudentClosedCases(studentRef?: string): Case[] {
+  if (!studentRef) return [];
   const ref = studentRef.toLowerCase();
   return casesStore.filter(
     (c) =>
@@ -323,6 +350,37 @@ export function getStudentClosedCases(studentRef: string = 'CS-8902'): Case[] {
       (c.studentDisplayRef.toLowerCase().includes(ref) ||
         c.incidentReport?.personsInvolved?.some((p) => p.identifier.toLowerCase().includes(ref)))
   );
+}
+
+/**
+ * Verify student's Case ID input and unlock defense access
+ */
+export function verifyAndAttachStudentCase(caseIdInput: string): { success: boolean; caseItem?: Case; error?: string } {
+  const cleanInput = caseIdInput.trim().toUpperCase();
+  const found = casesStore.find((c) => 
+    c.caseNumber.toUpperCase() === cleanInput || 
+    c.id.toUpperCase() === cleanInput ||
+    c.caseNumber.toUpperCase().includes(cleanInput)
+  );
+  if (!found) {
+    return { success: false, error: `No active disciplinary docket matches identifier "${caseIdInput}". Please verify your official notice.` };
+  }
+  
+  if (currentPersona.role === 'STUDENT') {
+    currentPersona = {
+      ...currentPersona,
+      activeCaseId: found.caseNumber,
+    };
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('eduguard_current_persona', JSON.stringify(currentPersona));
+        window.dispatchEvent(new Event('persona-changed'));
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return { success: true, caseItem: found };
 }
 
 /**
@@ -906,7 +964,43 @@ export async function closeCaseDocket(
   if (targetCase.sanctionTracking) {
     targetCase.sanctionTracking.completionStatus = 'COMPLETED';
     targetCase.sanctionTracking.closedAt = now;
+  } else {
+    targetCase.sanctionTracking = {
+      requirements: [targetCase.offenceCategory.sanctionRangeGuide],
+      completionStatus: 'COMPLETED',
+      deadline: now,
+      appealStatus: 'NO_APPEAL',
+      closedAt: now,
+      retentionExpiryDate: new Date(Date.now() + targetCase.offenceCategory.retentionYears * 365 * 86400000).toISOString(),
+    };
   }
+
+  // Ensure a decision record exists so it renders properly in the archive
+  if (!targetCase.decision) {
+    targetCase.decision = {
+      id: `dec-close-${Date.now()}`,
+      caseId: targetCase.id,
+      decidedBy: `${actor.name} (${actor.designation})`,
+      decidingAuthority: actor.department || 'Disciplinary Board of Inquest',
+      verdict: 'Disciplinary Resolution & Formal Closure',
+      reasoningText: 'Case concluded following verified completion of statutory due-process proceedings and sanction requirements.',
+      sanctionImposed: targetCase.offenceCategory.sanctionRangeGuide,
+      sanctionStartDate: targetCase.createdAt,
+      sanctionEndDate: now,
+      appealRoute: 'Executive Disciplinary Appeals Tribunal',
+      appealDeadline: new Date(Date.now() + 14 * 86400000).toISOString(),
+      appealSubmitted: false,
+      decidedAt: now,
+      decisionDocHash: `sha256-close-${Date.now()}`,
+    };
+  }
+
+  // Mark all checklist steps completed
+  targetCase.checklistItems.forEach((item) => {
+    item.status = 'COMPLETED';
+    if (!item.completedAt) item.completedAt = now;
+    if (!item.completedBy) item.completedBy = actor.name;
+  });
 
   const prevEntry = auditStore[auditStore.length - 1] || null;
   const auditEntry = await createAuditEntry(
@@ -922,6 +1016,7 @@ export async function closeCaseDocket(
   auditStore.push(auditEntry);
 
   if (typeof window !== 'undefined') {
+    persistCasesToStorage();
     window.dispatchEvent(new Event('persona-changed'));
   }
 

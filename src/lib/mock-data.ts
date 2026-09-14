@@ -11,6 +11,7 @@ export const USER_PERSONAS: UserPersona[] = [
     department: 'Computer Science & Engineering',
     designation: 'Professor & Head of Department',
     email: 'm.sharma@institution.edu',
+    employeeId: 'EMP-1001',
     avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
   },
   {
@@ -20,6 +21,7 @@ export const USER_PERSONAS: UserPersona[] = [
     department: 'Office of Student Affairs',
     designation: 'Dean of Student Affairs',
     email: 'a.sterling@institution.edu',
+    employeeId: 'EMP-1004',
     avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&auto=format&fit=crop&q=80',
   },
   {
@@ -29,6 +31,7 @@ export const USER_PERSONAS: UserPersona[] = [
     department: 'Electrical Engineering & Ethics Council',
     designation: 'Committee Chair / Senior Fellow',
     email: 'r.menon@institution.edu',
+    employeeId: 'EMP-1002',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
   },
   {
@@ -38,6 +41,7 @@ export const USER_PERSONAS: UserPersona[] = [
     department: 'Registrar & Legal Compliance',
     designation: 'Chief Compliance Officer & Registrar',
     email: 's.jenkins@institution.edu',
+    employeeId: 'EMP-1003',
     avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
   },
   {
@@ -47,6 +51,7 @@ export const USER_PERSONAS: UserPersona[] = [
     department: 'University Senate Oversight',
     designation: 'External Due-Process Auditor',
     email: 'audit.senate@institution.edu',
+    employeeId: 'EMP-9000',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
   },
   {
@@ -58,7 +63,19 @@ export const USER_PERSONAS: UserPersona[] = [
     email: 'rahul.verma@student.institution.edu',
     studentRollNo: 'CS-8902',
     studentBatch: '2024 - 2028',
+    activeCaseId: 'EDU-2026-00042',
     avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+  },
+  {
+    id: 'user-student-general',
+    name: 'Ananya Sharma',
+    role: 'STUDENT',
+    department: 'Computer Science & Engineering',
+    designation: 'Undergraduate Student (B.Tech CSE)',
+    email: 'ananya.sharma@student.institution.edu',
+    studentRollNo: 'CS-9104',
+    studentBatch: '2024 - 2028',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
   },
 ];
 

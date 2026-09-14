@@ -48,8 +48,10 @@ export interface UserPersona {
   designation: string;
   email: string;
   avatarUrl?: string;
+  employeeId?: string;
   studentRollNo?: string;
   studentBatch?: string;
+  activeCaseId?: string;
 }
 
 // 5-Point Policy & Offence Mapping (Step 2 of EDUguard workflow)

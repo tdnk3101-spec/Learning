@@ -16,6 +16,7 @@ import {
   Scale,
   FileText,
   AlertTriangle,
+  GripVertical,
 } from 'lucide-react';
 import Link from 'next/link';
 import { getCurrentPersona, getFilteredCases } from '@/lib/store';
@@ -40,6 +41,115 @@ export default function EduguardChatModal() {
   const [cases, setCases] = useState<Case[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string>('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Draggable floating launcher position & handlers
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; startX: number; startY: number } | null>(null);
+  const hasMovedRef = useRef<boolean>(false);
+
+  // Initialize position or restore from storage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedPos = localStorage.getItem('eduguard_widget_pos');
+        if (savedPos) {
+          const parsed = JSON.parse(savedPos);
+          if (parsed && typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+            const clampedX = Math.min(Math.max(16, parsed.x), window.innerWidth - 220);
+            const clampedY = Math.min(Math.max(16, parsed.y), window.innerHeight - 70);
+            setPosition({ x: clampedX, y: clampedY });
+            return;
+          }
+        }
+      } catch {
+        // ignore
+      }
+      setPosition({
+        x: Math.max(16, window.innerWidth - 230),
+        y: Math.max(16, window.innerHeight - 80),
+      });
+    }
+  }, []);
+
+  // Window resize handler
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition((prev) => {
+        if (!prev) return prev;
+        const width = widgetRef.current?.offsetWidth || 210;
+        const height = widgetRef.current?.offsetHeight || 50;
+        return {
+          x: Math.min(Math.max(16, prev.x), window.innerWidth - width - 16),
+          y: Math.min(Math.max(16, prev.y), window.innerHeight - height - 16),
+        };
+      });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const handlePointerDown = (clientX: number, clientY: number) => {
+    const rect = widgetRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    dragStartRef.current = {
+      mouseX: clientX,
+      mouseY: clientY,
+      startX: rect.left,
+      startY: rect.top,
+    };
+    hasMovedRef.current = false;
+
+    const handlePointerMove = (moveX: number, moveY: number) => {
+      if (!dragStartRef.current) return;
+      const dx = moveX - dragStartRef.current.mouseX;
+      const dy = moveY - dragStartRef.current.mouseY;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        hasMovedRef.current = true;
+      }
+
+      const width = widgetRef.current?.offsetWidth || 210;
+      const height = widgetRef.current?.offsetHeight || 50;
+      const newX = Math.min(Math.max(16, dragStartRef.current.startX + dx), window.innerWidth - width - 16);
+      const newY = Math.min(Math.max(16, dragStartRef.current.startY + dy), window.innerHeight - height - 16);
+
+      const nextPos = { x: newX, y: newY };
+      setPosition(nextPos);
+      try {
+        localStorage.setItem('eduguard_widget_pos', JSON.stringify(nextPos));
+      } catch {
+        // ignore
+      }
+    };
+
+    const onMouseMove = (e: MouseEvent) => handlePointerMove(e.clientX, e.clientY);
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches[0]) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    };
+
+    const onPointerUp = () => {
+      dragStartRef.current = null;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onPointerUp);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onPointerUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onPointerUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onPointerUp);
+  };
+
+  const handleWidgetClick = () => {
+    if (hasMovedRef.current) {
+      // It was dragged, do not toggle modal
+      return;
+    }
+    setIsOpen(!isOpen);
+  };
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -145,22 +255,40 @@ export default function EduguardChatModal() {
 
   return (
     <>
-      {/* Floating Toggle Trigger Button (Fixed Bottom-Right) */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-2">
+      {/* Draggable Floating Toggle Trigger Button */}
+      <div
+        ref={widgetRef}
+        style={
+          position
+            ? { left: `${position.x}px`, top: `${position.y}px` }
+            : { right: '1.5rem', bottom: '1.5rem' }
+        }
+        className="fixed z-40 flex items-center select-none touch-none"
+      >
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="group relative flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold text-xs shadow-xl shadow-emerald-700/25 hover:from-emerald-500 hover:to-teal-500 hover:scale-[1.03] active:scale-[0.98] transition-all border border-emerald-400/30"
-          aria-label="Toggle EDUguard Assistant"
+          onClick={handleWidgetClick}
+          onMouseDown={(e) => handlePointerDown(e.clientX, e.clientY)}
+          onTouchStart={(e) => {
+            if (e.touches[0]) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+          }}
+          className="group relative flex items-center gap-2 pl-2.5 pr-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-semibold text-xs shadow-2xl shadow-emerald-950/40 hover:from-emerald-500 hover:to-teal-500 hover:scale-[1.02] active:scale-[0.98] transition-all border border-emerald-400/40 cursor-grab active:cursor-grabbing backdrop-blur-md"
+          aria-label="Toggle EDUguard Assistant (Drag to reposition)"
+          title="Drag anywhere on screen or click to ask"
         >
+          {/* Drag Handle Grip */}
+          <div className="text-white/60 group-hover:text-white/90 transition-colors pr-0.5" title="Drag to reposition">
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+
           <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
             <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
           </div>
           <span className="tracking-tight font-bold">Ask EDUguard AI</span>
-          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-black/20 text-[10px] font-mono text-emerald-100">
+          <span className="hidden sm:inline-block px-1.5 py-0.5 rounded bg-black/25 text-[10px] font-mono text-emerald-200 border border-white/10">
             Groq AI
           </span>
           <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white animate-ping" />
-          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white" />
+          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-emerald-400 border-2 border-white shadow-xs" />
         </button>
       </div>
 

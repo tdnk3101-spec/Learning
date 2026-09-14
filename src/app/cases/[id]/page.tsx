@@ -150,13 +150,13 @@ export default function CaseDetailsPage({
 
   const handleCloseCase = async () => {
     if (!caseItem) return;
-    if (!confirm(`Are you sure you want to formally close docket ${caseItem.caseNumber}? This starts the retention timer.`)) return;
+    if (!confirm(`Are you sure you want to formally close docket ${caseItem.caseNumber}? This marks all proceedings complete, initiates the retention purge countdown, and moves this case to the Closed Cases Archive.`)) return;
     try {
       const updated = await closeCaseDocket(caseItem.id, persona);
       setCaseItem({ ...updated });
-      showFeedback(`Case ${caseItem.caseNumber} formally closed`);
+      showFeedback(`Docket ${caseItem.caseNumber} formally closed and archived.`);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error closing case');
+      alert(err instanceof Error ? err.message : 'Error closing case docket');
     }
   };
 
@@ -264,6 +264,30 @@ export default function CaseDetailsPage({
             >
               <Gavel className="w-4 h-4 text-emerald-400" />
               {caseItem.decision ? 'Inspect Reasoned Order' : 'Record Human Decision'}
+            </Link>
+          )}
+
+          {/* Prominent Close Case Action */}
+          {caseItem.status !== 'CLOSED' ? (
+            (persona.role === 'DEAN_STUDENT_AFFAIRS' || persona.role === 'COMMITTEE_MEMBER' || persona.role === 'HEAD_OF_DEPARTMENT' || persona.role === 'ADMIN_REGISTRAR') && (
+              <button
+                type="button"
+                onClick={handleCloseCase}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition flex items-center gap-1.5"
+                title="Conclude proceedings and formally move docket to Closed Cases Archive"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                Close Case Docket
+              </button>
+            )
+          ) : (
+            <Link
+              href="/cases?status=CLOSED"
+              className="px-3.5 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 text-xs font-bold flex items-center gap-1.5 transition"
+              title="View in Closed Cases Archive"
+            >
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              Archived in Closed Cases
             </Link>
           )}
         </div>

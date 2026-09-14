@@ -19,7 +19,7 @@ import {
   User,
   Hash,
 } from 'lucide-react';
-import { getCurrentPersona, registerNewUser, setCurrentPersona, loginAsPersona } from '@/lib/store';
+import { getCurrentPersona, registerNewUser, setCurrentPersona, loginAsPersona, verifyAndAttachStudentCase } from '@/lib/store';
 import { UserRole } from '@/types';
 
 export default function LoginPage() {
@@ -28,11 +28,19 @@ export default function LoginPage() {
   // Tab State: 'signin' | 'signup' | 'sso'
   const [authMode, setAuthMode] = React.useState<'signin' | 'signup' | 'sso'>('signin');
 
-  // Sign In State
-  const [signInEmail, setSignInEmail] = React.useState('m.sharma@institution.edu');
+  // Sign In Role Filter: 'FACULTY' | 'STUDENT'
+  const [signInRole, setSignInRole] = React.useState<'FACULTY' | 'STUDENT'>('FACULTY');
+
+  // Faculty Sign In State
+  const [facultyEmployeeId, setFacultyEmployeeId] = React.useState('EMP-1001');
   const [signInPassword, setSignInPassword] = React.useState('••••••••••••');
   const [showSignInPassword, setShowSignInPassword] = React.useState(false);
   const [rememberMe, setRememberMe] = React.useState(true);
+
+  // Student Sign In State
+  const [studentAccessMode, setStudentAccessMode] = React.useState<'GENERAL' | 'DEFENSE'>('GENERAL');
+  const [studentRoll, setStudentRoll] = React.useState('CS-9104');
+  const [caseIdInput, setCaseIdInput] = React.useState('EDU-2026-00042');
 
   // Sign Up State
   const [signUpRole, setSignUpRole] = React.useState<'STUDENT' | 'FACULTY'>('STUDENT');
@@ -74,39 +82,68 @@ export default function LoginPage() {
     setIsSubmitting(true);
 
     setTimeout(() => {
-      // If student email or student persona detected
-      if (
-        signInEmail.toLowerCase().includes('student') ||
-        signInEmail.toLowerCase().includes('cs8902') ||
-        signInEmail.toLowerCase().includes('rahul')
-      ) {
-        loginAsPersona('user-student-portal');
-        router.push('/student');
+      if (signInRole === 'FACULTY') {
+        const cleanEmpId = facultyEmployeeId.trim();
+        const lower = cleanEmpId.toLowerCase();
+
+        if (lower === 'emp-1001' || lower.includes('sharma') || lower.includes('hod')) {
+          loginAsPersona('user-hod-cse');
+          router.push('/dashboard');
+          return;
+        }
+        if (lower === 'emp-1002' || lower.includes('menon') || lower.includes('chair')) {
+          loginAsPersona('user-committee-chair');
+          router.push('/dashboard');
+          return;
+        }
+        if (lower === 'emp-1003' || lower.includes('jenkins') || lower.includes('registrar')) {
+          loginAsPersona('user-admin-registrar');
+          router.push('/dashboard');
+          return;
+        }
+        if (lower === 'emp-1004' || lower.includes('sterling') || lower.includes('dean')) {
+          loginAsPersona('user-dean-students');
+          router.push('/dashboard');
+          return;
+        }
+        if (lower === 'emp-9000' || lower.includes('audit')) {
+          loginAsPersona('user-governance-viewer');
+          router.push('/governance');
+          return;
+        }
+
+        // Search persona by employeeId or email
+        const matched = setCurrentPersona(cleanEmpId);
+        loginAsPersona(matched.id);
+        router.push(matched.role === 'GOVERNANCE_VIEWER' ? '/governance' : '/dashboard');
         return;
       }
 
-      if (signInEmail.toLowerCase().includes('dean') || signInEmail.toLowerCase().includes('sterling')) {
-        loginAsPersona('user-dean-students');
-        router.push('/dashboard');
-        return;
+      // Student Role Submission
+      if (signInRole === 'STUDENT') {
+        if (studentAccessMode === 'DEFENSE') {
+          if (!caseIdInput.trim()) {
+            setErrorMessage('Please provide your official Case ID (e.g. EDU-2026-00042) to unlock your defense section.');
+            setIsSubmitting(false);
+            return;
+          }
+          const res = verifyAndAttachStudentCase(caseIdInput.trim());
+          if (!res.success) {
+            setErrorMessage(res.error || 'Case ID not found in institutional disciplinary registry.');
+            setIsSubmitting(false);
+            return;
+          }
+          loginAsPersona('user-student-portal');
+          router.push('/student');
+          return;
+        } else {
+          // General student: agent & explainer only
+          loginAsPersona('user-student-general');
+          router.push('/student');
+          return;
+        }
       }
-
-      if (signInEmail.toLowerCase().includes('chair') || signInEmail.toLowerCase().includes('menon')) {
-        loginAsPersona('user-committee-chair');
-        router.push('/dashboard');
-        return;
-      }
-
-      if (signInEmail.toLowerCase().includes('registrar') || signInEmail.toLowerCase().includes('jenkins')) {
-        loginAsPersona('user-admin-registrar');
-        router.push('/dashboard');
-        return;
-      }
-
-      // Default: Dr. Meera Sharma (HoD)
-      loginAsPersona('user-hod-cse');
-      router.push('/dashboard');
-    }, 400);
+    }, 350);
   };
 
 
@@ -337,77 +374,255 @@ export default function LoginPage() {
             {/* TAB 1: SIGN IN FORM */}
             {authMode === 'signin' && (
               <div className="space-y-4">
-                <div className="space-y-1 mb-4">
-                  <h3 className="text-xl font-bold text-slate-900">Welcome Back</h3>
+                <div className="space-y-1 mb-2">
+                  <h3 className="text-xl font-bold text-slate-900">Sign In to EDUguard</h3>
                   <p className="text-xs text-slate-500">
-                    Sign in to access your designated disciplinary authority dashboard or student desk.
+                    Select your institutional role to authenticate with your Employee ID or Student Credentials.
                   </p>
                 </div>
 
-                <form onSubmit={handleSignInSubmit} className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Institutional Email / ID</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={signInEmail}
-                      onChange={(e) => setSignInEmail(e.target.value)}
-                      placeholder="e.g. m.sharma@institution.edu or student roll"
-                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Password</span>
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => setShowSignInPassword(!showSignInPassword)}
-                        className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-1"
-                      >
-                        {showSignInPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                        <span>{showSignInPassword ? 'Hide' : 'Show'}</span>
-                      </button>
-                    </div>
-                    <input
-                      type={showSignInPassword ? 'text' : 'password'}
-                      required
-                      value={signInPassword}
-                      onChange={(e) => setSignInPassword(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-mono"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={(e) => setRememberMe(e.target.checked)}
-                        className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                      />
-                      <span>Keep me signed in</span>
-                    </label>
-                    <a href="#" className="text-emerald-700 font-semibold hover:underline text-[11px]">
-                      Forgot Password?
-                    </a>
-                  </div>
+                {/* Role Switcher */}
+                <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSignInRole('FACULTY');
+                      setErrorMessage(null);
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      signInRole === 'FACULTY'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Faculty / Staff (Employee ID)</span>
+                  </button>
 
                   <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                    type="button"
+                    onClick={() => {
+                      setSignInRole('STUDENT');
+                      setErrorMessage(null);
+                    }}
+                    className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                      signInRole === 'STUDENT'
+                        ? 'bg-white text-slate-900 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-900'
+                    }`}
                   >
-                    <span>{isSubmitting ? 'Authenticating...' : 'Sign In to Dashboard'}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Student Portal</span>
                   </button>
-                </form>
+                </div>
+
+                {/* 1. FACULTY / EMPLOYEE ID SIGN IN FORM */}
+                {signInRole === 'FACULTY' && (
+                  <form onSubmit={handleSignInSubmit} className="space-y-3.5 pt-1">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>Official Employee ID / Email</span>
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">e.g. EMP-1001</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={facultyEmployeeId}
+                        onChange={(e) => setFacultyEmployeeId(e.target.value)}
+                        placeholder="Enter Employee ID (e.g. EMP-1001) or Email"
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono font-medium"
+                      />
+
+                      {/* Quick Select Employee ID Chips */}
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap text-[10px]">
+                        <span className="text-slate-400">Quick Fill:</span>
+                        <button
+                          type="button"
+                          onClick={() => setFacultyEmployeeId('EMP-1001')}
+                          className="px-2 py-0.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-mono border border-blue-200 transition"
+                        >
+                          EMP-1001 (HoD)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFacultyEmployeeId('EMP-1002')}
+                          className="px-2 py-0.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-mono border border-amber-200 transition"
+                        >
+                          EMP-1002 (Chair)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFacultyEmployeeId('EMP-1003')}
+                          className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-mono border border-emerald-200 transition"
+                        >
+                          EMP-1003 (Registrar)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFacultyEmployeeId('EMP-1004')}
+                          className="px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 font-mono border border-purple-200 transition"
+                        >
+                          EMP-1004 (Dean)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Institutional Password</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowSignInPassword(!showSignInPassword)}
+                          className="text-[11px] text-slate-400 hover:text-slate-600 flex items-center gap-1"
+                        >
+                          {showSignInPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          <span>{showSignInPassword ? 'Hide' : 'Show'}</span>
+                        </button>
+                      </div>
+                      <input
+                        type={showSignInPassword ? 'text' : 'password'}
+                        required
+                        value={signInPassword}
+                        onChange={(e) => setSignInPassword(e.target.value)}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-mono"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1">
+                      <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>Keep faculty session active</span>
+                      </label>
+                      <a href="#" className="text-blue-700 font-semibold hover:underline text-[11px]">
+                        Forgot Employee Credentials?
+                      </a>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                    >
+                      <span>{isSubmitting ? 'Verifying Employee ID...' : 'Sign In with Employee ID'}</span>
+                      <ArrowRight className="w-4 h-4 text-emerald-400" />
+                    </button>
+                  </form>
+                )}
+
+                {/* 2. STUDENT SIGN IN FORM (GENERAL vs AFFECTED CANDIDATE WITH CASE ID) */}
+                {signInRole === 'STUDENT' && (
+                  <form onSubmit={handleSignInSubmit} className="space-y-3.5 pt-1">
+                    {/* Student Access Mode Switcher */}
+                    <div className="grid grid-cols-2 gap-2 p-1 bg-slate-50 rounded-xl border border-slate-200/80 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudentAccessMode('GENERAL');
+                          setStudentRoll('CS-9104');
+                          setErrorMessage(null);
+                        }}
+                        className={`p-2 rounded-lg text-left transition ${
+                          studentAccessMode === 'GENERAL'
+                            ? 'bg-white text-slate-900 shadow-xs border border-slate-200 font-bold'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <span className="block text-[11px] font-bold">General Student</span>
+                        <span className="text-[10px] text-slate-400 block">Agent &amp; Due Process Guide</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStudentAccessMode('DEFENSE');
+                          setStudentRoll('CS-8902');
+                          setCaseIdInput('EDU-2026-00042');
+                          setErrorMessage(null);
+                        }}
+                        className={`p-2 rounded-lg text-left transition ${
+                          studentAccessMode === 'DEFENSE'
+                            ? 'bg-white text-emerald-900 shadow-xs border border-emerald-300 font-bold'
+                            : 'text-slate-500 hover:text-slate-800'
+                        }`}
+                      >
+                        <span className="block text-[11px] font-bold text-emerald-700">Affected / Case Defense</span>
+                        <span className="text-[10px] text-slate-400 block">Requires Notice Case ID</span>
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+                        <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Student Roll / Registration Number</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={studentRoll}
+                        onChange={(e) => setStudentRoll(e.target.value)}
+                        placeholder="e.g. CS-9104 or CS-8902"
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
+                      />
+                    </div>
+
+                    {/* Case ID input — strictly required for affected candidate */}
+                    {studentAccessMode === 'DEFENSE' ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-300/80 space-y-2">
+                        <label className="block text-xs font-bold text-emerald-900 flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <Hash className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>System-Generated Case ID / Docket Reference</span>
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-mono font-normal">From official notice</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={caseIdInput}
+                          onChange={(e) => setCaseIdInput(e.target.value)}
+                          placeholder="e.g. EDU-2026-00042"
+                          className="w-full px-3.5 py-2 text-xs bg-white border border-emerald-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 font-mono font-bold text-slate-900"
+                        />
+                        <p className="text-[11px] text-emerald-800 leading-relaxed">
+                          🔒 Validating this Case ID unlocks your confidential evidence dossier, written defense submission desk, and summons schedule.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                        <p className="font-semibold text-slate-900">Campus Member Preview Mode:</p>
+                        <p className="text-[11px] text-slate-500">
+                          As an uninvolved student, you can interact with the EDUguard AI agent and review how university policies safeguard due process without being subjected to disciplinary inquiries.
+                        </p>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
+                    >
+                      <span>
+                        {isSubmitting
+                          ? 'Authenticating...'
+                          : studentAccessMode === 'DEFENSE'
+                          ? 'Unlock Case Defense Desk'
+                          : 'Enter Student Information Desk'}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </form>
+                )}
               </div>
             )}
 
@@ -663,29 +878,56 @@ export default function LoginPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => handleDemoSelect('user-student-portal', '/student')}
+                onClick={() => handleDemoSelect('user-student-general', '/student')}
                 className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
               >
-                <span className="block text-[9px] text-emerald-600 uppercase font-bold">Student</span>
-                <span className="truncate block font-medium">Rahul (CS-8902)</span>
+                <span className="block text-[9px] text-teal-600 uppercase font-bold">General Student</span>
+                <span className="truncate block font-medium">Ananya (CS-9104)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoSelect('user-student-portal', '/student')}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-50/70 hover:bg-emerald-100 hover:border-emerald-300 border border-emerald-200 text-emerald-950 text-xs font-semibold transition text-left"
+              >
+                <span className="block text-[9px] text-emerald-700 uppercase font-bold">Affected (Defense)</span>
+                <span className="truncate block font-medium">Rahul (EDU-2026-00042)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleDemoSelect('user-hod-cse', '/dashboard')}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 hover:border-blue-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
               >
-                <span className="block text-[9px] text-blue-600 uppercase font-bold">HoD - CSE</span>
+                <span className="block text-[9px] text-blue-600 uppercase font-bold">HoD (EMP-1001)</span>
                 <span className="truncate block font-medium">Dr. Meera Sharma</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleDemoSelect('user-committee-chair', '/dashboard')}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-amber-50 hover:border-amber-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
+              >
+                <span className="block text-[9px] text-amber-600 uppercase font-bold">Chair (EMP-1002)</span>
+                <span className="truncate block font-medium">Dr. Rajiv Menon</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoSelect('user-admin-registrar', '/dashboard')}
                 className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
               >
-                <span className="block text-[9px] text-amber-600 uppercase font-bold">Committee Chair</span>
-                <span className="truncate block font-medium">Dr. Rajiv Menon</span>
+                <span className="block text-[9px] text-emerald-600 uppercase font-bold">Registrar (EMP-1003)</span>
+                <span className="truncate block font-medium">Sarah Jenkins, Esq.</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoSelect('user-dean-students', '/dashboard')}
+                className="px-2.5 py-1.5 rounded-xl bg-slate-50 hover:bg-purple-50 hover:border-purple-300 border border-slate-200 text-slate-700 text-xs font-semibold transition text-left"
+              >
+                <span className="block text-[9px] text-purple-600 uppercase font-bold">Dean (EMP-1004)</span>
+                <span className="truncate block font-medium">Prof. Arthur Sterling</span>
               </button>
             </div>
           </div>
