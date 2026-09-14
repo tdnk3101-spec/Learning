@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { OFFENCE_CATEGORIES, PRECEDENT_INDEX } from '@/lib/mock-data';
-import { addAuditLog, getAllCasesForGovernance, getFilteredCases } from '@/lib/store';
+import { addAuditLog, getAllCasesForGovernance, getAllClosedCases, getFilteredCases } from '@/lib/store';
 import { UserPersona } from '@/types';
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
@@ -14,7 +14,7 @@ const GUARDRAIL_PROMPT_PATTERNS = [
   /\b(decide (the )?verdict for (him|her|them|the student)|sentence (him|her|them))\b/i,
 ];
 
-function buildSystemPrompt(persona: UserPersona, casesSummary: string, activeCaseSummary?: string): string {
+function buildSystemPrompt(persona: UserPersona, casesSummary: string, activeCaseSummary?: string, closedCasesSummary?: string): string {
   return `You are EDUguard, an advanced Institutional Due-Process & Disciplinary Information Assistant for higher education universities.
 
 ACTIVE USER CONTEXT:
@@ -22,26 +22,43 @@ ACTIVE USER CONTEXT:
 - Role: ${persona.role}
 - Department: ${persona.department || 'Academic Affairs'}
 - Designation: ${persona.designation}
+${persona.studentRollNo ? `- Student Roll Number: ${persona.studentRollNo}` : ''}
 
-CORE INSTRUCTIONS FOR DIRECT, HIGH-QUALITY RESPONSES:
+CORE INSTRUCTIONS FOR DIRECT, ACCURATE & HELPFUL RESPONSES:
 1. ANSWER DIRECTLY FIRST:
    - Always answer the user's specific question immediately in the first 1-2 clear, simple sentences.
-   - Do NOT start with generic fluff, unnecessary legal boilerplate, or clumsy text.
+   - Address questions about policies, active cases, closed cases, statutory defense rights, deadlines, and precedents directly.
    - Speak in natural, authoritative, supportive, and accessible English that students, professors, and parents can easily understand.
 
-2. STRUCTURE YOUR ANSWER CLEANLY:
+2. HOW TO VIEW CLOSED CASES IN EDUGUARD:
+   - If the user asks where to find or see closed cases: Explain that closed cases are accessible in the **Closed Cases Archive**:
+     • **In Docket Manager**: Navigate to the Active Dockets page (/cases) and select the **"Closed Cases (Archive)"** tab, or open directly via URL (/cases?status=CLOSED).
+     • **In Sidebar Navigation**: Click the **"Closed Cases Archive"** link in the navigation menu.
+     • **In Dashboard**: Check the **"Closed Records & Compliance"** KPI card on the Academic Command Center (/dashboard).
+     • **For Students**: Log in to the **Student Due-Process Portal** (/student) and click the **"Closed History"** tab to view personal resolved records and remediation completion certificates.
+
+3. STUDENT DEFENSE & DUE-PROCESS RIGHTS:
+   - If a student asks for defense advice or how to protect themselves:
+     • **Right to Notice & Information**: The student has the statutory right to receive a formal Show-Cause Notice containing specific allegations and policy clauses.
+     • **Evidence Inspection**: Right to inspect all sealed evidence items (e.g. Turnitin/AST code comparison, proctorial reports) along with SHA-256 cryptographic verification hashes before any hearing.
+     • **Statutory Response Window**: Strict 5 to 7 calendar days to submit a written explanation without penalty.
+     • **Formal Defense Submission**: The student can submit their written factual representation and attach defense evidence documents directly in the Student Portal (/student).
+     • **Right to Representation**: Right to be accompanied by a student ombudsman or academic advisor during committee hearings with mandatory 72-hour advance notice.
+     • **Presumption of Innocence**: The burden of proof remains on the institution; the student is never presumed guilty.
+     • **Right of Appeal**: 14 calendar days following any formal determination to appeal to the Senate Appellate Board.
+
+4. STRUCTURE YOUR ANSWER CLEANLY:
    - Format answers using clean markdown:
      • **Direct Answer**: The exact answer to what was asked.
-     • **Applicable Policy & Clauses**: Cite the specific code (e.g. ACAD-01, ACAD-02, COND-01), section, and statutory timeframe.
-     • **Rights & Next Steps**: What the student or committee should do next (representation rights, evidence inspection, response windows, appeal route).
-   - Only use markdown tables if specifically comparing multiple items or severity tiers. Keep tables compact and well-formatted.
+     • **Applicable Policy / Case Reference**: Cite specific codes (e.g. ACAD-01, ACAD-02, COND-01), section, docket ID, or statutory timeframe.
+     • **Rights & Actionable Next Steps**: Clear guidance on what the student, committee, or user should do.
 
-3. STATUTORY GUARDRAIL PRINCIPLE:
-   - You provide legal policy retrieval, procedural tracking, notice drafting, and precedent comparison.
+5. STATUTORY GUARDRAIL PRINCIPLE:
+   - You provide legal policy retrieval, procedural tracking, notice drafting, defense guidance, and precedent comparison.
    - You NEVER declare guilt or decide punishments for individuals—that authority belongs solely to the authorized human Disciplinary Committee.
    - If (and ONLY if) the user explicitly asks you to declare guilt or pass a sentence on a student, state:
      "> **Due-Process Boundary**: Institutional regulations require that all determinations of guilt and disciplinary sanctions be made exclusively by the human Disciplinary Committee. Here is the objective statutory framework and precedent guidance for reference:"
-   - Do NOT attach this disclaimer when the user is simply asking about policy rules, penalty ranges, deadlines, or case facts!
+   - Do NOT attach this disclaimer when the user is simply asking about policy rules, penalty ranges, deadlines, defense advice, or case facts!
 
 INSTITUTIONAL POLICIES REFERENCE:
 - [ACAD-01] Academic Dishonesty & Assessment Irregularity: Code Clause 4.2(B) | Authority: HoD & Ethics Panel (Quorum: 3) | 7-day response window | 14-day appeal | Penalty Guide: Assignment grade nullification, 8h remedial citation seminar, restitution assignment.
@@ -52,6 +69,7 @@ INSTITUTIONAL POLICIES REFERENCE:
 
 ${activeCaseSummary ? `FOCUSED ACTIVE DOCKET:\n${activeCaseSummary}\n` : ''}
 ${casesSummary ? `ACCESSIBLE DOCKETS IN REGISTRY:\n${casesSummary}\n` : ''}
+${closedCasesSummary ? `CLOSED CASES IN ARCHIVE:\n${closedCasesSummary}\n` : ''}
 
 CLOSED PRECEDENTS BENCHMARK (For Reference):
 - PREC-2024-0014: Code Similarity in Algorithm Lab (First-time, partial intent -> 8-Hour Academic Citation Workshop & grade cap).
@@ -80,6 +98,8 @@ export async function POST(request: Request) {
         ? getAllCasesForGovernance()
         : getFilteredCases(currentPersona);
 
+    const closedCases = getAllClosedCases();
+
     const activeCase = activeCaseId ? accessibleCases.find((c) => c.id === activeCaseId) : undefined;
     const activeCaseSummary = activeCase
       ? `Case ${activeCase.caseNumber} (${activeCase.studentDisplayRef}): "${activeCase.title}" | Status: ${activeCase.status} | Offence: ${activeCase.offenceCategory.code} (${activeCase.offenceCategory.relevantClause}) | Dept: ${activeCase.department} | Evidence: ${activeCase.incidentReport?.evidenceItems?.length || 0} items | Checklist: ${activeCase.checklistItems.filter((i) => i.status === 'COMPLETED').length}/${activeCase.checklistItems.length} steps completed`
@@ -90,6 +110,13 @@ export async function POST(request: Request) {
       .map(
         (c) =>
           `- ${c.caseNumber} [${c.offenceCategory.code}]: "${c.title}" (${c.studentDisplayRef}) | Status: ${c.status}`
+      )
+      .join('\n');
+
+    const closedCasesSummary = closedCases
+      .map(
+        (c) =>
+          `- ${c.caseNumber} [${c.offenceCategory.code}]: "${c.title}" (${c.studentDisplayRef}) | Verdict: ${c.decision?.verdict || 'Resolved'} | Sanction: ${c.decision?.sanctionImposed || 'Remediation completed'} | Retention Expiry: ${c.retentionExpiryAt ? new Date(c.retentionExpiryAt).toLocaleDateString() : 'Active Archival'}`
       )
       .join('\n');
 
@@ -108,7 +135,7 @@ export async function POST(request: Request) {
     let replyText = '';
     let usedModel = GROQ_MODEL;
 
-    const systemPrompt = buildSystemPrompt(currentPersona, casesSummary, activeCaseSummary);
+    const systemPrompt = buildSystemPrompt(currentPersona, casesSummary, activeCaseSummary, closedCasesSummary);
     const apiMessages = [
       { role: 'system', content: systemPrompt },
       ...messages.map((m: { role: string; content: string }) => ({
@@ -127,16 +154,19 @@ export async function POST(request: Request) {
         body: JSON.stringify({
           model: GROQ_MODEL,
           messages: apiMessages,
-          temperature: 0.1,
-          max_tokens: 1000,
+          temperature: 0.2,
+          max_tokens: 2048,
         }),
       });
 
-      if (!groqRes.ok) {
-        const errorData = await groqRes.json().catch(() => ({}));
-        console.warn('Primary Groq model error, trying fallback:', errorData);
+      if (groqRes.ok) {
+        const data = await groqRes.json();
+        replyText = data.choices?.[0]?.message?.content?.trim() || '';
+      }
 
-        // Try fallback model
+      // If primary model failed, returned empty text, or hit reasoning truncation, use fallback model
+      if (!replyText) {
+        console.warn('Primary Groq model returned empty content or failed, invoking fallback:', GROQ_FALLBACK_MODEL);
         const fallbackRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -146,27 +176,27 @@ export async function POST(request: Request) {
           body: JSON.stringify({
             model: GROQ_FALLBACK_MODEL,
             messages: apiMessages,
-            temperature: 0.1,
-            max_tokens: 900,
+            temperature: 0.2,
+            max_tokens: 2048,
           }),
         });
 
         if (fallbackRes.ok) {
           const fallbackData = await fallbackRes.json();
-          replyText = fallbackData.choices?.[0]?.message?.content || '';
+          replyText = fallbackData.choices?.[0]?.message?.content?.trim() || '';
           usedModel = GROQ_FALLBACK_MODEL;
-        } else {
-          throw new Error('All Groq models unavailable');
         }
-      } else {
-        const data = await groqRes.json();
-        replyText = data.choices?.[0]?.message?.content || '';
+      }
+
+      if (!replyText) {
+        throw new Error('All Groq models produced empty responses');
       }
     } catch (llmErr) {
       console.error('LLM invocation failed, using deterministic institutional response:', llmErr);
       replyText = generateDeterministicFallback(lastUserMessage, currentPersona, accessibleCases);
       usedModel = 'local-rule-engine';
     }
+
 
     // Prepend guardrail warning if triggered and not already included
     if (guardrailTriggered && !replyText.includes('Due-Process Boundary') && !replyText.includes('STATUTORY GUARDRAIL')) {
@@ -272,14 +302,55 @@ Case **EDU-2026-00042** is currently in the **RESPONSE_WINDOW** stage under Acad
 - **Next Step**: Expiration of response window on 17 September 2026 at 18:00 UTC.`;
   }
 
+  if (q.includes('closed') || q.includes('archive') || q.includes('resolved') || q.includes('edu-2025-00118') || q.includes('edu-2025-00092')) {
+    return `### Closed Cases Archive & Historical Resolutions
+
+**Direct Answer:**
+Closed cases in EDUguard are permanently preserved with full cryptographic audit trails. You can inspect closed cases in the portal via:
+1. **Docket Manager**: Go to the [Active Dockets](/cases) page and select the **"Closed Cases (Archive)"** tab (or direct link: \`/cases?status=CLOSED\`).
+2. **Sidebar Navigation**: Click **"Closed Cases Archive"** in the navigation menu.
+3. **Student Portal**: If you are a student, check the **"Closed History"** tab on the [Student Defense Portal](/student) to view your past resolved dockets and compliance certificates.
+
+**Archived Closed Cases in Registry:**
+- **EDU-2025-00118**: *Uncited Reference Duplication in OS Lab* (Student #CS-8902 - Rahul Verma)
+  • **Verdict**: Substantiated (First-Time Negligent Infraction — Educational Remediation)
+  • **Sanction Imposed**: Mandatory 8-Hour Academic Citation Seminar & Proctored Lab Resubmission
+  • **Status**: Completed & Closed (Retention active until November 2028)
+- **EDU-2025-00092**: *Circuit Fabrication Laboratory Apparatus Accidental Overload* (Student #EC-2094 - Priya Sundaram)
+  • **Verdict**: Accidental Misuse with Voluntary Disclosure
+  • **Sanction Imposed**: High-Voltage Safety Re-Certification Seminar (Satisfied)
+  • **Status**: Completed & Closed (Retention active until October 2028)`;
+  }
+
+  if (q.includes('defend') || q.includes('defense') || q.includes('protect') || q.includes('rights') || q.includes('help')) {
+    return `### Student Due-Process Defense Guide & Statutory Protections
+
+**Direct Answer:**
+Under institutional regulations, every student is entitled to comprehensive due-process protections when facing an inquiry:
+
+**Key Steps for Your Defense:**
+1. **Inspect Evidence & Notice**:
+   - Access the [Student Due-Process Portal](/student) to review the official Show-Cause Notice and all sealed evidence items with SHA-256 cryptographic verification hashes.
+2. **Submit Your Written Representation**:
+   - Use the statutory response window (5 to 7 calendar days) to submit your factual explanation and upload supporting documentation (e.g. earlier code drafts, timestamped notes, commit logs).
+3. **Ombudsman & Advocate Representation**:
+   - You have the statutory right to be accompanied by a student ombudsman, faculty mentor, or certified peer advocate during all committee oral proceedings.
+4. **Mandatory 72-Hour Hearing Notice**:
+   - The university cannot summon you to a hearing without at least 72 hours advance written notice.
+5. **Right of Appeal**:
+   - Any formal committee determination can be appealed to the Senate Appellate Board within 14 calendar days of receipt.`;
+  }
+
   return `### EDUguard Disciplinary Registry
 
 **Direct Answer:**
 I have searched the university disciplinary governance index for your query.
 
 - **Available Policies**: Academic Dishonesty (ACAD-01), Exam Conduct (ACAD-02), Campus Standards (COND-01), Lab Safety (COND-02), Anti-Harassment (COND-03).
+- **Closed Cases Archive**: Available under [Closed Cases](/cases?status=CLOSED) or via the Closed Cases tab in Docket Manager.
+- **Student Due-Process Portal**: Available at [Student Defense Portal](/student) with evidence inspection and statement submission.
 - **Active Dockets**: Accessible according to your current role (${persona.name} · ${persona.role.replace(/_/g, ' ')}).
-- **Precedent Archive**: Multi-factor indexing available for historical sanction comparison.
 
-Please ask any specific question (e.g. *"What is the penalty for using unauthorized aids in an exam?"*, *"What are my rights if accused of plagiarism?"*, or *"Check status of EDU-2026-00042"*).`;
+Please ask any specific question (e.g. *"Where can I see closed cases?"*, *"How can a student defend against cheating allegations?"*, or *"What is the penalty for ACAD-01?"*).`;
+
 }

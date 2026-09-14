@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Scale,
@@ -9,14 +9,63 @@ import {
   User,
   LayoutDashboard,
   Lock,
+  LogIn,
+  LogOut,
+  Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import { getCurrentPersona, isUserAuthenticated, logoutUser } from '@/lib/store';
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileLandingMenuOpen, setMobileLandingMenuOpen] = React.useState(false);
+  const [persona, setPersona] = React.useState(getCurrentPersona());
+  const [isAuth, setIsAuth] = React.useState(isUserAuthenticated());
+
+  React.useEffect(() => {
+    const handleUpdate = () => {
+      setPersona(getCurrentPersona());
+      setIsAuth(isUserAuthenticated());
+    };
+
+    window.addEventListener('persona-changed', handleUpdate);
+    window.addEventListener('auth-changed', handleUpdate);
+    return () => {
+      window.removeEventListener('persona-changed', handleUpdate);
+      window.removeEventListener('auth-changed', handleUpdate);
+    };
+  }, []);
+
+  // RBAC Route Guard & Guest Security Gate
+  React.useEffect(() => {
+    // 1. If user is logged in as a STUDENT, restrict strictly to Student Defense related pages
+    if (persona.role === 'STUDENT') {
+      const staffOnlyPrefixes = ['/dashboard', '/cases', '/retention', '/audit', '/governance', '/precedents'];
+      if (staffOnlyPrefixes.some((path) => pathname.startsWith(path))) {
+        router.replace('/student');
+        return;
+      }
+    }
+
+    // 2. If guest (not logged in), allow preview of landing (/) and dashboard (/dashboard preview) and login (/login).
+    // Gating all sensitive docket management and personal student records behind authentication.
+    if (!isAuth) {
+      const protectedPrefixes = ['/cases', '/audit', '/governance', '/retention', '/precedents', '/student'];
+      if (protectedPrefixes.some((path) => pathname.startsWith(path))) {
+        router.replace(`/login?redirect=${encodeURIComponent(pathname)}`);
+        return;
+      }
+    }
+  }, [pathname, persona.role, isAuth, router]);
+
+  const handleLogout = () => {
+    logoutUser();
+    router.push('/');
+  };
 
   // Landing page has its own full-width layout with institutional header
   if (pathname === '/') {
@@ -60,30 +109,61 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <a href="#guardrail" className="hover:text-emerald-700 transition">
                 AI Guardrails
               </a>
-              <Link href="/audit" className="hover:text-emerald-700 transition">
-                SHA-256 Audit
+              <Link href="/dashboard" className="hover:text-emerald-700 transition">
+                Main Dashboard
               </Link>
             </nav>
 
             {/* Direct Action Portal Access */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                href="/student"
-                className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 text-xs font-semibold transition"
-              >
-                <User className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Student Portal</span>
-              </Link>
-
-              <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition group shrink-0"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Staff Center</span>
-                <span className="xs:hidden">Staff</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              {isAuth ? (
+                <>
+                  {persona.role === 'STUDENT' ? (
+                    <Link
+                      href="/student"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition group shrink-0"
+                    >
+                      <User className="w-3.5 h-3.5" />
+                      <span>My Defense Portal</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition group shrink-0"
+                    >
+                      <LayoutDashboard className="w-3.5 h-3.5" />
+                      <span>Staff Center</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+                    title="Sign Out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-slate-600 hover:text-slate-900 text-xs font-semibold hover:bg-slate-100 transition"
+                  >
+                    <LayoutDashboard className="w-3.5 h-3.5 text-slate-500" />
+                    <span>View Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-700/20 transition group shrink-0"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Sign In</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                </>
+              )}
 
               {/* Mobile Landing Hamburger */}
               <button
@@ -119,33 +199,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               >
                 Live Demo
               </a>
-              <a
-                href="#stakeholders"
-                onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-700 hover:text-emerald-600"
-              >
-                Stakeholders View
-              </a>
-              <a
-                href="#guardrail"
-                onClick={() => setMobileLandingMenuOpen(false)}
-                className="block py-2 text-slate-700 hover:text-emerald-600"
-              >
-                AI Guardrails
-              </a>
               <Link
-                href="/audit"
+                href="/dashboard"
                 onClick={() => setMobileLandingMenuOpen(false)}
                 className="block py-2 text-slate-700 hover:text-emerald-600"
               >
-                SHA-256 Audit Trail
+                Main Dashboard Preview
               </Link>
               <Link
-                href="/student"
+                href="/login"
                 onClick={() => setMobileLandingMenuOpen(false)}
                 className="block py-2 text-emerald-700 font-bold"
               >
-                Student Due-Process Portal →
+                Sign In to Full Portal →
               </Link>
             </div>
           )}
@@ -171,22 +237,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-6 text-slate-600 flex-wrap justify-center font-medium">
               <Link href="/login" className="hover:text-emerald-700 transition">
-                Role Switcher (Demo)
+                Sign In / Role Switcher
               </Link>
-              <Link href="/cases" className="hover:text-emerald-700 transition">
-                Active Dockets
+              <Link href="/dashboard" className="hover:text-emerald-700 transition">
+                Main Dashboard
               </Link>
-              <Link href="/precedents" className="hover:text-emerald-700 transition">
-                Precedents RAG
+              <Link href="/cases?status=CLOSED" className="hover:text-emerald-700 transition">
+                Closed Cases Archive
               </Link>
               <Link href="/audit" className="hover:text-emerald-700 transition">
                 Cryptographic Ledger
-              </Link>
-              <Link href="/governance" className="hover:text-emerald-700 transition">
-                Equity Analytics
-              </Link>
-              <Link href="/retention" className="hover:text-emerald-700 transition">
-                Retention Engine
               </Link>
             </div>
 
@@ -221,23 +281,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   Student Due-Process Portal
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500">Respondent Case Access &amp; Defense Desk</p>
+              <p className="text-[10px] text-slate-500">Respondent Defense Desk · Guaranteed Due Process</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <Link
-              href="/"
-              className="text-xs text-slate-600 hover:text-slate-900 transition px-3 py-1.5 rounded-lg hover:bg-slate-100"
+              href="/assistant"
+              className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 font-semibold transition px-3 py-1.5 rounded-lg flex items-center gap-1.5"
             >
-              Public Home
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>AI Rights Guide</span>
             </Link>
-            <Link
-              href="/dashboard"
-              className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3.5 py-1.5 rounded-lg transition shadow-xs"
+            <button
+              onClick={handleLogout}
+              className="text-xs text-slate-600 hover:text-red-600 transition px-3 py-1.5 rounded-lg hover:bg-slate-100 flex items-center gap-1.5"
             >
-              Staff Command Center
-            </Link>
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
           </div>
         </header>
 
@@ -257,3 +319,4 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+

@@ -12,14 +12,17 @@ import {
   ArrowRight,
   CheckCircle2,
   Lock,
+  Archive,
+  LogIn,
 } from 'lucide-react';
-import { getCurrentPersona, getFilteredCases, getAuditLogs } from '@/lib/store';
+import { getCurrentPersona, getFilteredCases, getAuditLogs, isUserAuthenticated } from '@/lib/store';
 import { CASE_STATUS_WORKFLOW } from '@/lib/state-machine';
 
 export default function DashboardCommandCenterPage() {
   const [persona, setPersona] = React.useState(getCurrentPersona());
   const [cases, setCases] = React.useState(getFilteredCases());
   const [auditLogs, setAuditLogs] = React.useState(getAuditLogs().slice(-5).reverse());
+  const [isAuth, setIsAuth] = React.useState(isUserAuthenticated());
 
   React.useEffect(() => {
     const handleUpdate = () => {
@@ -27,10 +30,15 @@ export default function DashboardCommandCenterPage() {
       setPersona(current);
       setCases(getFilteredCases(current));
       setAuditLogs(getAuditLogs().slice(-5).reverse());
+      setIsAuth(isUserAuthenticated());
     };
 
     window.addEventListener('persona-changed', handleUpdate);
-    return () => window.removeEventListener('persona-changed', handleUpdate);
+    window.addEventListener('auth-changed', handleUpdate);
+    return () => {
+      window.removeEventListener('persona-changed', handleUpdate);
+      window.removeEventListener('auth-changed', handleUpdate);
+    };
   }, []);
 
   // Compute metrics
@@ -38,9 +46,36 @@ export default function DashboardCommandCenterPage() {
   const pendingResponses = cases.filter((c) => c.status === 'RESPONSE_WINDOW');
   const inHearings = cases.filter((c) => c.status === 'COMMITTEE_CONSTITUTED' || c.status === 'HEARING_SCHEDULED');
   const pendingDecisions = cases.filter((c) => c.status === 'HEARING_SCHEDULED' && !c.decision);
+  const closedCases = cases.filter((c) => c.status === 'CLOSED');
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Security Guest Notice Banner (When Unauthenticated) */}
+      {!isAuth && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-teal-500/10 border border-amber-500/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-700 mt-0.5 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">
+                Security Notice: Guest Preview Mode
+              </h3>
+              <p className="text-xs text-slate-600 mt-0.5 max-w-2xl leading-relaxed">
+                You are currently viewing the system overview in read-only Guest Mode. To manage case dockets, inspect sealed evidence, access the student defense portal, or file incident reports, institutional sign-in is required.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-sm transition shrink-0"
+          >
+            <LogIn className="w-4 h-4 text-emerald-400" />
+            Sign In for Full Access
+          </Link>
+        </div>
+      )}
+
       {/* Top Banner Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
@@ -58,7 +93,15 @@ export default function DashboardCommandCenterPage() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <Link
+            href="/cases?status=CLOSED"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition"
+          >
+            <Archive className="w-4 h-4 text-emerald-600" />
+            <span>Closed Cases Archive ({closedCases.length})</span>
+          </Link>
+
           {(persona.role === 'ADMIN_REGISTRAR' || persona.role === 'HEAD_OF_DEPARTMENT') && (
             <Link
               href="/cases/new"
@@ -68,9 +111,10 @@ export default function DashboardCommandCenterPage() {
               File Incident Report
             </Link>
           )}
+
           <Link
             href="/cases"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl shadow-xs transition"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition"
           >
             <FileSpreadsheet className="w-4 h-4 text-slate-400" />
             View Active Dockets ({activeCases.length})
@@ -79,9 +123,9 @@ export default function DashboardCommandCenterPage() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Card 1 */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Active Dockets</span>
             <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
@@ -92,13 +136,13 @@ export default function DashboardCommandCenterPage() {
             <div className="text-2xl font-bold text-slate-900">{activeCases.length}</div>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="text-[11px] font-semibold text-emerald-700">100% Gated</span>
-              <span className="text-[11px] text-slate-400">by assigned role</span>
+              <span className="text-[11px] text-slate-400">by role</span>
             </div>
           </div>
         </div>
 
         {/* Card 2 */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Pending Response</span>
             <span className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
@@ -109,15 +153,15 @@ export default function DashboardCommandCenterPage() {
             <div className="text-2xl font-bold text-slate-900">{pendingResponses.length}</div>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="text-[11px] font-semibold text-amber-600">Active Window</span>
-              <span className="text-[11px] text-slate-400">7-day statutory clock</span>
+              <span className="text-[11px] text-slate-400">7-day clock</span>
             </div>
           </div>
         </div>
 
         {/* Card 3 */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Committee Hearings</span>
+            <span className="text-xs font-medium text-slate-500">Hearings</span>
             <span className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
               <Users className="w-4 h-4" />
             </span>
@@ -125,14 +169,14 @@ export default function DashboardCommandCenterPage() {
           <div className="mt-3">
             <div className="text-2xl font-bold text-slate-900">{inHearings.length}</div>
             <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[11px] font-semibold text-blue-600">Quorum Verified</span>
-              <span className="text-[11px] text-slate-400">min 3 members</span>
+              <span className="text-[11px] font-semibold text-blue-600">Quorum Met</span>
+              <span className="text-[11px] text-slate-400">min 3</span>
             </div>
           </div>
         </div>
 
         {/* Card 4 */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-slate-500">Awaiting Decision</span>
             <span className="p-1.5 rounded-lg bg-purple-50 text-purple-600">
@@ -143,15 +187,37 @@ export default function DashboardCommandCenterPage() {
             <div className="text-2xl font-bold text-slate-900">{pendingDecisions.length}</div>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="text-[11px] font-semibold text-purple-600">Human-Only</span>
-              <span className="text-[11px] text-slate-400">No AI decisions</span>
+              <span className="text-[11px] text-slate-400">Panel</span>
             </div>
           </div>
         </div>
 
-        {/* Card 5 */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+        {/* Card 5: Closed Cases Archive */}
+        <Link
+          href="/cases?status=CLOSED"
+          className="bg-white hover:bg-slate-50/90 transition rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500">Audit Chain Health</span>
+            <span className="text-xs font-medium text-slate-500 group-hover:text-emerald-700 transition">
+              Closed Cases
+            </span>
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100 transition">
+              <Archive className="w-4 h-4" />
+            </span>
+          </div>
+          <div className="mt-3">
+            <div className="text-2xl font-bold text-slate-900">{closedCases.length}</div>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[11px] font-semibold text-emerald-700">Archived</span>
+              <span className="text-[11px] text-slate-400">WORM sealed</span>
+            </div>
+          </div>
+        </Link>
+
+        {/* Card 6 */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-500">Audit Chain</span>
             <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
               <ShieldCheck className="w-4 h-4" />
             </span>
@@ -160,11 +226,12 @@ export default function DashboardCommandCenterPage() {
             <div className="text-2xl font-bold text-emerald-600">100% Valid</div>
             <div className="flex items-center gap-1.5 mt-1">
               <span className="text-[11px] font-semibold text-emerald-700">SHA-256</span>
-              <span className="text-[11px] text-slate-400">Hash-chained</span>
+              <span className="text-[11px] text-slate-400">Chained</span>
             </div>
           </div>
         </div>
       </div>
+
 
       {/* 9-Step Procedural Workflow Pipeline */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">

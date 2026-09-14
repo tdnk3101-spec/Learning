@@ -18,8 +18,10 @@ import {
   Home,
   X,
   Sparkles,
+  Archive,
+  LogOut,
 } from 'lucide-react';
-import { getCurrentPersona, setCurrentPersona } from '@/lib/store';
+import { getCurrentPersona, setCurrentPersona, loginAsPersona, logoutUser } from '@/lib/store';
 import { USER_PERSONAS } from '@/lib/mock-data';
 
 export default function Sidebar() {
@@ -50,15 +52,41 @@ export default function Sidebar() {
   }, [pathname]);
 
   const handleRoleChange = (personaId: string) => {
-    const updated = setCurrentPersona(personaId);
+    const updated = loginAsPersona(personaId);
     setPersona(updated);
     setShowRoleMenu(false);
+  };
+
+  const handleLogout = () => {
+    logoutUser();
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('persona-changed'));
+      window.location.href = '/';
     }
   };
 
-  const navItems = [
+  // Dedicated Student Navigation Menu (Strictly Student Defense Only)
+  const studentNavItems = [
+    {
+      label: 'Student Defense Portal',
+      href: '/student',
+      icon: User,
+      badge: 'Defense Desk',
+    },
+    {
+      label: 'EDUguard AI Rights Assistant',
+      href: '/assistant',
+      icon: Sparkles,
+      badge: 'Rights RAG',
+    },
+    {
+      label: 'Closed Case History',
+      href: '/student#closed',
+      icon: Archive,
+    },
+  ];
+
+  // Faculty, Administration & Committee Navigation
+  const staffNavItems = [
     {
       label: 'Home / Overview',
       href: '/',
@@ -83,6 +111,13 @@ export default function Sidebar() {
       href: '/cases',
       icon: FileSpreadsheet,
       rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER'],
+    },
+    {
+      label: 'Closed Cases Archive',
+      href: '/cases?status=CLOSED',
+      icon: Archive,
+      rolesAllowed: ['ADMIN_REGISTRAR', 'HEAD_OF_DEPARTMENT', 'DEAN_STUDENT_AFFAIRS', 'COMMITTEE_MEMBER', 'GOVERNANCE_VIEWER'],
+      badge: 'Archived',
     },
     {
       label: 'Student Defense Portal',
@@ -122,6 +157,12 @@ export default function Sidebar() {
       rolesAllowed: ['ADMIN_REGISTRAR', 'DEAN_STUDENT_AFFAIRS', 'GOVERNANCE_VIEWER'],
     },
   ];
+
+  const activeNavItems =
+    currentPersona.role === 'STUDENT'
+      ? studentNavItems
+      : staffNavItems.filter((i) => i.rolesAllowed.includes(currentPersona.role));
+
 
   const sidebarContent = (
     <div className="flex flex-col h-full select-none bg-white text-slate-800">
@@ -205,6 +246,16 @@ export default function Sidebar() {
                 {p.id === currentPersona.id && <UserCheck className="w-3.5 h-3.5 text-emerald-600" />}
               </button>
             ))}
+
+            <div className="pt-2 border-t border-slate-100">
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs text-red-600 hover:bg-red-50 font-semibold flex items-center gap-2 transition"
+              >
+                <LogOut className="w-3.5 h-3.5 text-red-500" />
+                <span>Sign Out (Guest Mode)</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -212,15 +263,10 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         <div className="px-3 py-1 text-[10px] uppercase font-bold tracking-wider text-slate-400">
-          Workflows &amp; Dockets
+          {currentPersona.role === 'STUDENT' ? 'Student Defense Desk' : 'Workflows & Dockets'}
         </div>
-        {navItems.map((item) => {
+        {activeNavItems.map((item) => {
           const isActive = pathname === item.href;
-          const isAllowed = item.rolesAllowed.includes(currentPersona.role);
-
-          if (!isAllowed) {
-            return null;
-          }
 
           return (
             <Link
@@ -248,6 +294,7 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
 
       {/* Friendly Light Guardrail Badge */}
       <div className="p-4 border-t border-slate-200/80 bg-slate-50/60 shrink-0">

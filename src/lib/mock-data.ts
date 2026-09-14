@@ -49,7 +49,19 @@ export const USER_PERSONAS: UserPersona[] = [
     email: 'audit.senate@institution.edu',
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
   },
+  {
+    id: 'user-student-portal',
+    name: 'Rahul Verma',
+    role: 'STUDENT',
+    department: 'Computer Science & Engineering',
+    designation: 'Undergraduate Student (B.Tech CSE)',
+    email: 'rahul.verma@student.institution.edu',
+    studentRollNo: 'CS-8902',
+    studentBatch: '2024 - 2028',
+    avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+  },
 ];
+
 
 // 5-Point Policy & Offence Mapping (Step 2 of EDUguard workflow)
 export const OFFENCE_CATEGORIES: OffenceCategory[] = [

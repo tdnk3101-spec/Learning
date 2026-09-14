@@ -22,7 +22,8 @@ import { cycleChecklistStatus, generateProceduralChecklist } from './state-machi
 let casesStore: Case[] = [...INITIAL_CASES];
 let auditStore: AuditLogEntry[] = [];
 let activePersonas: UserPersona[] = [...USER_PERSONAS];
-let currentPersona: UserPersona = USER_PERSONAS[0]; // Default: Dr. Meera Sharma (HoD - CSE)
+let currentPersona: UserPersona = USER_PERSONAS[0]; // Default fallback
+let isAuthenticatedState: boolean = false; // Initial guest state until login
 
 // Helper to persist cases to browser localStorage
 export function persistCasesToStorage() {
@@ -69,9 +70,16 @@ export function loadCasesFromStorage() {
         const p = JSON.parse(cur);
         if (p?.id) currentPersona = p;
       }
+      const authVal = localStorage.getItem('eduguard_authenticated');
+      if (authVal === 'true') {
+        isAuthenticatedState = true;
+      } else if (authVal === 'false') {
+        isAuthenticatedState = false;
+      }
     } catch (e) {
       console.warn('LocalStorage load failed', e);
     }
+
   }
 }
 
@@ -125,6 +133,15 @@ if (typeof window !== 'undefined' || auditStore.length === 0) {
 }
 
 // Access Control & Role Checks
+export function isUserAuthenticated(): boolean {
+  if (typeof window !== 'undefined') {
+    const authStored = localStorage.getItem('eduguard_authenticated');
+    if (authStored === 'true') return true;
+    if (authStored === 'false') return false;
+  }
+  return isAuthenticatedState;
+}
+
 export function getCurrentPersona(): UserPersona {
   return currentPersona;
 }
@@ -134,7 +151,23 @@ export function getAllPersonas(): UserPersona[] {
 }
 
 export function setCurrentPersona(personaId: string): UserPersona {
-  const found = activePersonas.find((p) => p.id === personaId) || USER_PERSONAS.find((p) => p.id === personaId);
+  let found = activePersonas.find((p) => p.id === personaId) || USER_PERSONAS.find((p) => p.id === personaId);
+  
+  // Fallback for student portal id
+  if (!found && (personaId === 'user-student-portal' || personaId.toLowerCase().includes('student'))) {
+    found = USER_PERSONAS.find((p) => p.role === 'STUDENT') || {
+      id: 'user-student-portal',
+      name: 'Rahul Verma',
+      role: 'STUDENT',
+      department: 'Computer Science & Engineering',
+      designation: 'Undergraduate Student (B.Tech CSE)',
+      email: 'rahul.verma@student.institution.edu',
+      studentRollNo: 'CS-8902',
+      studentBatch: '2024 - 2028',
+      avatarUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80',
+    };
+  }
+
   if (found) {
     currentPersona = found;
     if (typeof window !== 'undefined') {
@@ -147,6 +180,38 @@ export function setCurrentPersona(personaId: string): UserPersona {
   }
   return currentPersona;
 }
+
+export function loginAsPersona(personaId: string): UserPersona {
+  const persona = setCurrentPersona(personaId);
+  isAuthenticatedState = true;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('eduguard_authenticated', 'true');
+      localStorage.setItem('eduguard_current_persona', JSON.stringify(persona));
+      window.dispatchEvent(new Event('persona-changed'));
+      window.dispatchEvent(new Event('auth-changed'));
+    } catch {
+      // ignore
+    }
+  }
+  return persona;
+}
+
+export function logoutUser(): void {
+  isAuthenticatedState = false;
+  currentPersona = USER_PERSONAS[0];
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('eduguard_authenticated', 'false');
+      localStorage.setItem('eduguard_current_persona', JSON.stringify(USER_PERSONAS[0]));
+      window.dispatchEvent(new Event('persona-changed'));
+      window.dispatchEvent(new Event('auth-changed'));
+    } catch {
+      // ignore
+    }
+  }
+}
+
 
 /**
  * Register a new user (Student or Faculty/Staff) and set as active

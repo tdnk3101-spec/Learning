@@ -7,6 +7,9 @@ import {
   PlusCircle,
   Search,
   ChevronRight,
+  Archive,
+  CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { getCurrentPersona, getFilteredCases } from '@/lib/store';
 
@@ -21,6 +24,8 @@ export default function CasesDocketPage() {
       const params = new URLSearchParams(window.location.search);
       const s = params.get('search');
       if (s) setSearchQuery(s);
+      const st = params.get('status');
+      if (st) setStatusFilter(st.toUpperCase());
     }
 
     const handleUpdate = () => {
@@ -33,6 +38,8 @@ export default function CasesDocketPage() {
     return () => window.removeEventListener('persona-changed', handleUpdate);
   }, []);
 
+  const closedCasesCount = cases.filter((c) => c.status === 'CLOSED').length;
+
   const filteredCases = cases.filter((c) => {
     if (statusFilter !== 'ALL' && c.status !== statusFilter) return false;
     if (searchQuery) {
@@ -42,7 +49,9 @@ export default function CasesDocketPage() {
         c.title.toLowerCase().includes(q) ||
         c.studentDisplayRef.toLowerCase().includes(q) ||
         c.department.toLowerCase().includes(q) ||
-        c.offenceCategory.code.toLowerCase().includes(q);
+        c.offenceCategory.code.toLowerCase().includes(q) ||
+        (c.decision?.verdict && c.decision.verdict.toLowerCase().includes(q)) ||
+        (c.decision?.sanctionImposed && c.decision.sanctionImposed.toLowerCase().includes(q));
       if (!match) return false;
     }
     return true;
@@ -60,21 +69,39 @@ export default function CasesDocketPage() {
             <span className="text-xs text-slate-400">·</span>
             <span className="text-xs text-slate-500 font-medium">RBAC Gated: {persona.role}</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Active Disciplinary Dockets</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {statusFilter === 'CLOSED' ? 'Closed Cases Archive' : 'Active & Archived Dockets'}
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Institutional case files, evidence registries, and due-process verification timelines.
+            {statusFilter === 'CLOSED'
+              ? 'Permanently preserved historical cases with reasoned determinations, completed sanctions, and WORM audit integrity.'
+              : 'Institutional case files, evidence registries, and due-process verification timelines.'}
           </p>
         </div>
 
-        {(persona.role === 'ADMIN_REGISTRAR' || persona.role === 'HEAD_OF_DEPARTMENT') && (
-          <Link
-            href="/cases/new"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition self-start sm:self-auto"
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'CLOSED' ? 'ALL' : 'CLOSED')}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border transition ${
+              statusFilter === 'CLOSED'
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-xs'
+            }`}
           >
-            <PlusCircle className="w-4 h-4" />
-            File New Incident Report
-          </Link>
-        )}
+            <Archive className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Closed Cases ({closedCasesCount})</span>
+          </button>
+
+          {(persona.role === 'ADMIN_REGISTRAR' || persona.role === 'HEAD_OF_DEPARTMENT') && (
+            <Link
+              href="/cases/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition self-start sm:self-auto"
+            >
+              <PlusCircle className="w-4 h-4" />
+              File New Incident Report
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -88,17 +115,27 @@ export default function CasesDocketPage() {
             { id: 'RESPONSE_WINDOW', label: 'Response Window' },
             { id: 'COMMITTEE_CONSTITUTED', label: 'In Committee' },
             { id: 'DECISION_RECORDED', label: 'Decided' },
+            { id: 'CLOSED', label: 'Closed Archive', count: closedCasesCount },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5 ${
                 statusFilter === tab.id
                   ? 'bg-slate-900 text-white shadow-xs'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              {tab.count !== undefined && (
+                <span
+                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    statusFilter === tab.id ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -108,13 +145,14 @@ export default function CasesDocketPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Filter docket, respondent, category..."
+            placeholder="Filter docket, respondent, verdict..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
       </div>
+
 
       {/* Cases Table/Card List */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -195,33 +233,76 @@ export default function CasesDocketPage() {
                       </span>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="pt-2 max-w-md">
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
-                        <span>Procedural Due Process Progress</span>
-                        <span className="font-semibold text-slate-700">
-                          {completedSteps} of {totalSteps} milestones ({progressPct}%)
-                        </span>
+                    {/* Closed Case Info or Progress Bar */}
+                    {c.status === 'CLOSED' ? (
+                      <div className="pt-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1.5 max-w-2xl">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span className="font-semibold text-slate-800">
+                            Final Resolution: {c.decision?.verdict || 'Substantiated with Remediation'}
+                          </span>
+                        </div>
+                        {c.decision?.sanctionImposed && (
+                          <div className="text-[11px] text-slate-600">
+                            <span className="font-medium text-slate-500">Sanction:</span> {c.decision.sanctionImposed}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-4 text-[11px] text-slate-500 flex-wrap pt-0.5">
+                          <span>
+                            Closed Date: <strong className="text-slate-700">{c.closedAt ? new Date(c.closedAt).toLocaleDateString() : 'November 2025'}</strong>
+                          </span>
+                          <span>·</span>
+                          <span>
+                            Sanction Status: <strong className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-mono">COMPLETED</strong>
+                          </span>
+                          <span>·</span>
+                          <span>
+                            Retention Expiry: <strong className="text-slate-700">{c.retentionExpiryAt ? new Date(c.retentionExpiryAt).toLocaleDateString() : 'Active Archival'}</strong>
+                          </span>
+                        </div>
                       </div>
-                      <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                        <div
-                          className="bg-emerald-500 h-full rounded-full transition-all duration-300"
-                          style={{ width: `${progressPct}%` }}
-                        />
+                    ) : (
+                      <div className="pt-2 max-w-md">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mb-1">
+                          <span>Procedural Due Process Progress</span>
+                          <span className="font-semibold text-slate-700">
+                            {completedSteps} of {totalSteps} milestones ({progressPct}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${progressPct}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Right: Quick Action Buttons */}
                   <div className="flex items-center gap-2 shrink-0 pt-2 lg:pt-0">
                     <Link
                       href={`/cases/${c.id}`}
-                      className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5"
+                      className={`px-4 py-2 text-xs font-semibold rounded-xl shadow-xs transition flex items-center gap-1.5 ${
+                        c.status === 'CLOSED'
+                          ? 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                      }`}
                     >
-                      Open Case File
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      {c.status === 'CLOSED' ? (
+                        <>
+                          <Archive className="w-3.5 h-3.5" />
+                          <span>View Archived File</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Open Case File</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
                     </Link>
                   </div>
+
                 </div>
               );
             })}

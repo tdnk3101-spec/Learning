@@ -19,7 +19,7 @@ import {
   User,
   Hash,
 } from 'lucide-react';
-import { getCurrentPersona, registerNewUser, setCurrentPersona } from '@/lib/store';
+import { getCurrentPersona, registerNewUser, setCurrentPersona, loginAsPersona } from '@/lib/store';
 import { UserRole } from '@/types';
 
 export default function LoginPage() {
@@ -63,10 +63,7 @@ export default function LoginPage() {
 
   // Quick Demo Login Handler
   const handleDemoSelect = (personaId: string, redirectPath: string) => {
-    setCurrentPersona(personaId);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('persona-changed'));
-    }
+    loginAsPersona(personaId);
     router.push(redirectPath);
   };
 
@@ -83,40 +80,35 @@ export default function LoginPage() {
         signInEmail.toLowerCase().includes('cs8902') ||
         signInEmail.toLowerCase().includes('rahul')
       ) {
-        setCurrentPersona('user-student-portal');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('persona-changed'));
-        }
+        loginAsPersona('user-student-portal');
         router.push('/student');
         return;
       }
 
       if (signInEmail.toLowerCase().includes('dean') || signInEmail.toLowerCase().includes('sterling')) {
-        setCurrentPersona('user-dean-students');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('persona-changed'));
-        }
+        loginAsPersona('user-dean-students');
         router.push('/dashboard');
         return;
       }
 
       if (signInEmail.toLowerCase().includes('chair') || signInEmail.toLowerCase().includes('menon')) {
-        setCurrentPersona('user-committee-chair');
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('persona-changed'));
-        }
+        loginAsPersona('user-committee-chair');
+        router.push('/dashboard');
+        return;
+      }
+
+      if (signInEmail.toLowerCase().includes('registrar') || signInEmail.toLowerCase().includes('jenkins')) {
+        loginAsPersona('user-admin-registrar');
         router.push('/dashboard');
         return;
       }
 
       // Default: Dr. Meera Sharma (HoD)
-      setCurrentPersona('user-hod-cse');
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('persona-changed'));
-      }
+      loginAsPersona('user-hod-cse');
       router.push('/dashboard');
     }, 400);
   };
+
 
   // Sign Up Submission
   const handleSignUpSubmit = (e: React.FormEvent) => {
@@ -164,6 +156,7 @@ export default function LoginPage() {
           studentBatch: batch,
         });
 
+        loginAsPersona(studentPersona.id);
         setSuccessMessage(`Account created for ${studentPersona.name}! Redirecting to Student Due-Process Desk...`);
 
         setTimeout(() => {
@@ -188,12 +181,14 @@ export default function LoginPage() {
           email: email.trim(),
         });
 
+        loginAsPersona(staffPersona.id);
         setSuccessMessage(`Faculty account registered for ${staffPersona.name}! Redirecting to Staff Dashboard...`);
 
         setTimeout(() => {
           router.push('/dashboard');
         }, 800);
       }
+
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       setIsSubmitting(false);
